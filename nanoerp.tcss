@@ -1,0 +1,53 @@
+Screen {
+    align: center middle;
+}
+
+#menu-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    padding: 1 2;
+    width: 100%;
+}
+
+#menu-list {
+    width: 50;
+    height: auto;
+    border: solid $primary;
+    margin: 1 0;
+}
+
+#placeholder-message {
+    text-align: center;
+    padding: 2 4;
+    border: dashed $warning;
+    width: 60;
+    height: auto;
+}
+
+QuitScreen {
+    align: center middle;
+}
+
+#quit-dialog {
+    width: 40;
+    height: auto;
+    border: thick $error;
+    padding: 1 2;
+    background: $surface;
+}
+
+#quit-message {
+    text-align: center;
+    padding: 0 0 1 0;
+}
+
+#quit-buttons {
+    align: center middle;
+    height: auto;
+    width: 100%;
+}
+
+#quit-buttons Button {
+    margin: 0 1;
+}
