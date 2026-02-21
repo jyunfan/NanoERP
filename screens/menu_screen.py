@@ -1,5 +1,6 @@
 from __future__ import annotations
 from textual.app import ComposeResult
+from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Header, Footer, OptionList, Label
 from textual.widgets.option_list import Option
@@ -28,6 +29,17 @@ class MenuScreen(Screen):
         yield OptionList(*options, id="menu-list")
         yield Footer()
 
+    def on_key(self, event: Key) -> None:
+        if not event.character or not event.character.isdigit():
+            return
+        key_num = event.character
+        for index, child in enumerate(self._node.children):
+            if child.label.startswith(f"{key_num}."):
+                event.prevent_default()
+                self.query_one(OptionList).highlighted = index
+                self._navigate_to(child)
+                return
+
     def on_option_list_option_selected(
         self, event: OptionList.OptionSelected
     ) -> None:
@@ -38,7 +50,10 @@ class MenuScreen(Screen):
         )
         if child is None:
             return
+        self._navigate_to(child)
 
+    def _navigate_to(self, child: MenuNode) -> None:
+        selected_id = child.id
         if child.is_back:
             self.app.pop_screen()
         elif child.children:

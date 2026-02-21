@@ -1,3 +1,8 @@
+選單操作
+* 可以使用方向鍵上下移動選單
+* 可以按數字鍵快速選擇選單項目
+
+
 # 客戶資料
 
 | id | car_number | name  | checkout_code | phone1 | phone2 |
