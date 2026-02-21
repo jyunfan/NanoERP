@@ -43,6 +43,14 @@ class MenuScreen(Screen):
             self.app.pop_screen()
         elif child.children:
             self.app.push_screen(MenuScreen(child))
+        elif self._node.id == "1" and selected_id in ("1", "2", "3"):
+            from screens.customer_screen import CustomerScreen
+            self.app.push_screen(
+                CustomerScreen(market=int(selected_id), title=child.label)
+            )
+        elif self._node.id == "root" and selected_id == "2":
+            from screens.product_screen import ProductScreen
+            self.app.push_screen(ProductScreen(title=child.label))
         else:
             from screens.placeholder import PlaceholderScreen
             self.app.push_screen(PlaceholderScreen(child.label))
