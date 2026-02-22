@@ -2,8 +2,7 @@
 * 可以使用方向鍵上下移動選單
 * 可以按數字鍵快速選擇選單項目
 
-# Global Variables
-* WORK_DATE: 工作日期，格式為YYYY-MM-DD
+Header 功能：顯示 WORK_DATE (預設是今天)，按 F10 可以更改 WORK_DATE
 
 
 # 客戶資料

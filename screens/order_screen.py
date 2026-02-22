@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 import os
-from datetime import date
+
 
 from textual.app import ComposeResult
 from textual.screen import Screen
@@ -35,7 +35,6 @@ class OrderScreen(Screen):
         super().__init__()
         self._market = market
         self._title = title
-        self._work_date = date.today().isoformat()
         self._editing: Coordinate | None = None
         self._selected_customer_id: int | None = None
         # Maps (row_index, group_index) -> order_table.id or None
@@ -112,7 +111,7 @@ class OrderScreen(Screen):
             "SELECT id, product_id, quantity FROM order_table "
             "WHERE customer_id = ? AND order_date = ? AND posted = 0 "
             "ORDER BY id",
-            (self._selected_customer_id, self._work_date),
+            (self._selected_customer_id, self.app.work_date),
         )
         orders = cur.fetchall()
         conn.close()
@@ -200,7 +199,7 @@ class OrderScreen(Screen):
             cur.execute(
                 "INSERT INTO order_table (customer_id, product_id, quantity, order_date, is_return, posted) "
                 "VALUES (?, ?, 0, ?, 0, 0)",
-                (self._selected_customer_id, product_id, self._work_date),
+                (self._selected_customer_id, product_id, self.app.work_date),
             )
             order_id = cur.lastrowid
             self._cell_order_map[(row_idx, group_idx)] = order_id
