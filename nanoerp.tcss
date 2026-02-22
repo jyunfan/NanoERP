@@ -88,3 +88,32 @@ CustomerScreen SelectOverlay {
     width: 100%;
     height: 1fr;
 }
+
+#order-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    padding: 1 2;
+    width: 100%;
+}
+
+#order-container {
+    width: 100%;
+    height: 1fr;
+}
+
+#customer-list {
+    width: 20;
+    height: 100%;
+    border: solid $primary;
+}
+
+#order-table {
+    width: 1fr;
+    height: 100%;
+}
+
+OrderScreen SelectOverlay {
+    height: auto;
+    max-height: 10;
+}

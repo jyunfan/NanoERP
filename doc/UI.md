@@ -21,5 +21,12 @@
 | 1  | 甜不辣         | 甜不辣          | 100            | 150        | 10           |           |
 
 # 訂單資料
-| customer_id | product_id | quantity | order_date | is_return | posted |
-| ----------- | ---------- | -------- | ---------- | --------- | ------ |
+
+Left panel: 客戶名稱選單，可以上下移動選擇客戶，按下Enter鍵進入該客戶的訂單資料。
+Right panel: 顯示選定客戶的訂單資料，可以上下移動選擇訂單，按下Enter鍵進入編輯模式，按下Esc鍵離開編輯模式。
+
+## 訂單編輯頁面
+| product_id (col 1) | quantity | product_id (col 2) | quantity | product_id (col 3) | quantity |
+| ---------- | -------- | ---------- | -------- | ---------- | -------- |
+| 1          | 5        | 2          | 10       | 3          | 15       |
+| 4          | 20       |            |          |            |          |

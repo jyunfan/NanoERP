@@ -66,6 +66,11 @@ class MenuScreen(Screen):
         elif self._node.id == "root" and selected_id == "2":
             from screens.product_screen import ProductScreen
             self.app.push_screen(ProductScreen(title=child.label))
+        elif self._node.id == "3" and selected_id in ("1", "2", "3"):
+            from screens.order_screen import OrderScreen
+            self.app.push_screen(
+                OrderScreen(market=int(selected_id), title=child.label)
+            )
         else:
             from screens.placeholder import PlaceholderScreen
             self.app.push_screen(PlaceholderScreen(child.label))
