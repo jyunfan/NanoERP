@@ -2,9 +2,11 @@
 * 可以使用方向鍵上下移動選單
 * 可以按數字鍵快速選擇選單項目
 
+# Global Variables
+* WORK_DATE: 工作日期，格式為YYYY-MM-DD
+
 
 # 客戶資料
-
 | id | car_number | name  | checkout_code | phone1 | phone2 |
 | -- | ---------- | ----- | ------------- | ------ | ------ |
 | 1  | 123        | 張三  | 1          | 0912345678 | 0987654321 |
@@ -17,3 +19,7 @@
 | id | detailed_name | short_name | purchase_price | sale_price | safety_stock | return_unit |
 | -- | ---------- | ------------- | ---------- | -------------- | ---------- | ------------ | -----------
 | 1  | 甜不辣         | 甜不辣          | 100            | 150        | 10           |           |
+
+# 訂單資料
+| customer_id | product_id | quantity | order_date | is_return | posted |
+| ----------- | ---------- | -------- | ---------- | --------- | ------ |

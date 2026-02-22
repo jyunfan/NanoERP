@@ -43,3 +43,4 @@
 | quantity | int | 數量 |
 | order_date | date | 訂單日期 |
 | is_return | boolean | 最後一筆是否為退貨 |
+| posted | boolean | 是否已過帳 |

@@ -42,6 +42,7 @@ def create_database():
             quantity INTEGER,
             order_date DATE,
             is_return BOOLEAN,
+            posted BOOLEAN DEFAULT 0,
             FOREIGN KEY (customer_id) REFERENCES customer(id),
             FOREIGN KEY (product_id) REFERENCES product(id)
         )
