@@ -55,9 +55,13 @@ class OrderScreen(Screen):
     def on_mount(self) -> None:
         self._load_products()
         self._load_customers()
+        self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
         table = self.query_one("#order-table", DataTable)
         for col_key, col_label in COLUMNS:
             table.add_column(col_label, key=col_key)
+
+    def _on_work_date_changed(self, new_value: str) -> None:
+        self._load_customers()
 
     def _load_products(self) -> None:
         conn = sqlite3.connect(DB_PATH)
