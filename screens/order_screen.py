@@ -6,8 +6,7 @@ import os
 
 from textual.app import ComposeResult
 from textual.screen import Screen
-from textual.widgets import Header, Footer, DataTable, Label, Input, Select, OptionList
-from textual.widgets.option_list import Option
+from textual.widgets import Header, Footer, DataTable, Label, Input, Select
 from textual.containers import Horizontal
 from textual.binding import Binding
 from textual.coordinate import Coordinate
@@ -37,6 +36,7 @@ class OrderScreen(Screen):
         self._title = title
         self._editing: Coordinate | None = None
         self._selected_customer_id: int | None = None
+        self._customer_ids: list[int] = []  # row index -> customer id
         # Maps (row_index, group_index) -> order_table.id or None
         self._cell_order_map: dict[tuple[int, int], int] = {}
         # product_id stored per cell for display: (row_index, group_index) -> product_id
@@ -48,7 +48,7 @@ class OrderScreen(Screen):
         yield Header()
         yield Label(self._title, id="order-title")
         with Horizontal(id="order-container"):
-            yield OptionList(id="customer-list")
+            yield DataTable(id="customer-list", cursor_type="row")
             yield DataTable(id="order-table", cursor_type="cell")
         yield Footer()
 
@@ -72,30 +72,43 @@ class OrderScreen(Screen):
         conn.close()
 
     def _load_customers(self) -> None:
-        option_list = self.query_one("#customer-list", OptionList)
-        option_list.clear_options()
+        cust_table = self.query_one("#customer-list", DataTable)
+        cust_table.clear(columns=True)
+        cust_table.add_column("客戶名稱", key="cust_name")
+        cust_table.add_column("訂單數目", key="order_count")
+        self._customer_ids = []
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT id, name FROM customer WHERE market = ? ORDER BY id",
-            (self._market,),
+            "SELECT c.id, c.name, COUNT(o.id) as order_count "
+            "FROM customer c "
+            "LEFT JOIN order_table o ON o.customer_id = c.id AND o.order_date = ? AND o.posted = 0 "
+            "WHERE c.market = ? "
+            "GROUP BY c.id "
+            "ORDER BY c.id",
+            (self.app.work_date, self._market),
         )
         for row in cur.fetchall():
-            cid, name = row
-            option_list.add_option(Option(name or str(cid), id=str(cid)))
+            cid, name, count = row
+            self._customer_ids.append(cid)
+            count_str = str(count) if count > 0 else ""
+            cust_table.add_row(name or str(cid), count_str, key=f"cust_{cid}")
         conn.close()
 
-    def on_option_list_option_highlighted(
-        self, event: OptionList.OptionHighlighted
+    def on_data_table_row_highlighted(
+        self, event: DataTable.RowHighlighted
     ) -> None:
-        event.stop()
-        self._selected_customer_id = int(event.option.id)
-        self._load_orders()
+        if event.data_table.id != "customer-list":
+            return
+        if event.cursor_row < len(self._customer_ids):
+            self._selected_customer_id = self._customer_ids[event.cursor_row]
+            self._load_orders()
 
-    def on_option_list_option_selected(
-        self, event: OptionList.OptionSelected
+    def on_data_table_row_selected(
+        self, event: DataTable.RowSelected
     ) -> None:
-        event.stop()
+        if event.data_table.id != "customer-list":
+            return
         table = self.query_one("#order-table", DataTable)
         table.focus()
         if table.row_count > 0:
@@ -138,9 +151,28 @@ class OrderScreen(Screen):
             table.add_row(*row_values, key=f"row_{row_idx}")
             row_idx += 1
 
+    def _refresh_customer_order_count(self) -> None:
+        if self._selected_customer_id is None:
+            return
+        cust_table = self.query_one("#customer-list", DataTable)
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT COUNT(id) FROM order_table "
+            "WHERE customer_id = ? AND order_date = ? AND posted = 0",
+            (self._selected_customer_id, self.app.work_date),
+        )
+        count = cur.fetchone()[0]
+        conn.close()
+        count_str = str(count) if count > 0 else ""
+        row_key = f"cust_{self._selected_customer_id}"
+        cust_table.update_cell(row_key, "order_count", count_str, update_width=True)
+
     def on_data_table_cell_selected(
         self, event: DataTable.CellSelected
     ) -> None:
+        if event.data_table.id != "order-table":
+            return
         if self._editing is not None:
             return
         if self._selected_customer_id is None:
@@ -218,6 +250,7 @@ class OrderScreen(Screen):
         cell_key = table.coordinate_to_cell_key(coord)
         table.update_cell(cell_key.row_key, cell_key.column_key, product_name, update_width=True)
 
+        self._refresh_customer_order_count()
         self._dismiss_editor(table)
 
     def _finish_edit_qty(self, coord: Coordinate, new_value: str) -> None:
@@ -258,7 +291,7 @@ class OrderScreen(Screen):
             table = self.query_one("#order-table", DataTable)
             self._dismiss_editor(table)
         elif self._focus_is_on_table():
-            self.query_one("#customer-list", OptionList).focus()
+            self.query_one("#customer-list", DataTable).focus()
         else:
             self.app.pop_screen()
 
