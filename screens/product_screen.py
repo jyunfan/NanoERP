@@ -20,6 +20,7 @@ COLUMNS = [
     ("sale_price", "售價"),
     ("safety_stock", "安存量"),
     ("return_unit", "銷退單位"),
+    ("frequent", "常用"),
 ]
 
 
@@ -54,11 +55,12 @@ class ProductScreen(Screen):
         cur = conn.cursor()
         cur.execute(
             "SELECT id, car_number, detailed_name, short_name, "
-            "purchase_price, sale_price, safety_stock, return_unit "
+            "purchase_price, sale_price, safety_stock, return_unit, frequent "
             "FROM product ORDER BY id"
         )
         for row in cur.fetchall():
-            values = [v if v is not None else "" for v in row]
+            values = [v if v is not None else "" for v in row[:-1]]
+            values.append("V" if row[-1] else "")
             table.add_row(*values, key=str(row[0]))
         conn.close()
 
@@ -74,6 +76,10 @@ class ProductScreen(Screen):
         if col_key == "id":
             return
 
+        if col_key == "frequent":
+            self._toggle_frequent(coord, current_value)
+            return
+
         self._editing = coord
         table = self.query_one("#product-table", DataTable)
         table.display = False
@@ -84,6 +90,26 @@ class ProductScreen(Screen):
         )
         self.mount(edit_input)
         edit_input.focus()
+
+    def _toggle_frequent(self, coord: Coordinate, current_value: object) -> None:
+        table = self.query_one("#product-table", DataTable)
+        cell_key = table.coordinate_to_cell_key(coord)
+        row_key = cell_key.row_key
+        product_id = int(row_key.value)
+
+        new_db_value = 0 if current_value == "V" else 1
+        new_display = "" if current_value == "V" else "V"
+
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "UPDATE product SET frequent = ? WHERE id = ?",
+            (new_db_value, product_id),
+        )
+        conn.commit()
+        conn.close()
+
+        table.update_cell(row_key, cell_key.column_key, new_display, update_width=True)
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if self._editing is None:
@@ -132,13 +158,13 @@ class ProductScreen(Screen):
         cur = conn.cursor()
         cur.execute(
             "INSERT INTO product (car_number, detailed_name, short_name, "
-            "purchase_price, sale_price, safety_stock, return_unit) "
-            "VALUES (NULL, '', '', NULL, NULL, NULL, '')"
+            "purchase_price, sale_price, safety_stock, return_unit, frequent) "
+            "VALUES (NULL, '', '', NULL, NULL, NULL, '', 0)"
         )
         new_id = cur.lastrowid
         conn.commit()
         conn.close()
 
         table = self.query_one("#product-table", DataTable)
-        table.add_row(new_id, "", "", "", "", "", "", key=str(new_id))
+        table.add_row(new_id, "", "", "", "", "", "", "", key=str(new_id))
         table.move_cursor(row=table.row_count - 1, column=0)

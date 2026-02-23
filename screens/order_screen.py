@@ -20,7 +20,7 @@ NUM_GROUPS = 3  # 3 groups per row
 # Column definitions: (key, label) repeated for each group
 COLUMNS: list[tuple[str, str]] = []
 for i in range(NUM_GROUPS):
-    COLUMNS.append((f"prod_{i}", f"產品{i + 1}"))
+    COLUMNS.append((f"prod_{i}", f"名稱"))
     COLUMNS.append((f"qty_{i}", "數量"))
 
 

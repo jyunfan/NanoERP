@@ -30,9 +30,15 @@ def create_database():
             purchase_price INTEGER,
             sale_price INTEGER,
             safety_stock INTEGER,
-            return_unit TEXT
+            return_unit TEXT,
+            frequent BOOLEAN DEFAULT 0
         )
     """)
+
+    try:
+        cur.execute("ALTER TABLE product ADD COLUMN frequent BOOLEAN DEFAULT 0")
+    except sqlite3.OperationalError:
+        pass
 
     cur.execute("""
         CREATE TABLE IF NOT EXISTS order_table (

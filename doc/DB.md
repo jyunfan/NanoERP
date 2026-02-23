@@ -34,6 +34,7 @@
 | sale_price | int | 售價 |
 | safety_stock | int | 安存量 |
 | return_unit | string | 銷退單位 |
+| frequent | boolean | 常用產品 |
 
 # order table (訂單資料表)
 | Field Name | Data Type | Description |
