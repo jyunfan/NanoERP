@@ -85,12 +85,17 @@ class OrderScreen(Screen):
             option_list.add_option(Option(name or str(cid), id=str(cid)))
         conn.close()
 
-    def on_option_list_option_selected(
-        self, event: OptionList.OptionSelected
+    def on_option_list_option_highlighted(
+        self, event: OptionList.OptionHighlighted
     ) -> None:
         event.stop()
         self._selected_customer_id = int(event.option.id)
         self._load_orders()
+
+    def on_option_list_option_selected(
+        self, event: OptionList.OptionSelected
+    ) -> None:
+        event.stop()
         table = self.query_one("#order-table", DataTable)
         table.focus()
         if table.row_count > 0:
