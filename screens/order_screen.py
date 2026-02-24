@@ -5,6 +5,7 @@ import os
 
 
 from textual.app import ComposeResult
+from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Header, Footer, DataTable, Label, Input, Select
 from textual.containers import Horizontal
@@ -42,6 +43,7 @@ class OrderScreen(Screen):
         # product_id stored per cell for display: (row_index, group_index) -> product_id
         self._cell_product_map: dict[tuple[int, int], int] = {}
         self._product_options: list[tuple[str, int]] = []  # (name, id)
+        self._frequent_product_options: list[tuple[str, int]] = []  # frequent only
         self._product_names: dict[int, str] = {}  # id -> short_name
 
     def compose(self) -> ComposeResult:
@@ -66,13 +68,16 @@ class OrderScreen(Screen):
     def _load_products(self) -> None:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        cur.execute("SELECT id, short_name FROM product ORDER BY id")
+        cur.execute("SELECT id, short_name, frequent FROM product ORDER BY id")
         self._product_options = []
+        self._frequent_product_options = []
         self._product_names = {}
         for row in cur.fetchall():
-            pid, name = row
+            pid, name, frequent = row
             self._product_names[pid] = name or ""
             self._product_options.append((name or str(pid), pid))
+            if frequent:
+                self._frequent_product_options.append((name or str(pid), pid))
         conn.close()
 
     def _load_customers(self) -> None:
@@ -172,6 +177,24 @@ class OrderScreen(Screen):
         row_key = f"cust_{self._selected_customer_id}"
         cust_table.update_cell(row_key, "order_count", count_str, update_width=True)
 
+    def on_key(self, event: Key) -> None:
+        if event.character != "+":
+            return
+        if self._editing is not None:
+            return
+        if self._selected_customer_id is None:
+            return
+        table = self.query_one("#order-table", DataTable)
+        if self.app.focused is not table:
+            return
+        coord = table.cursor_coordinate
+        col_key = COLUMNS[coord.column][0]
+        if not col_key.startswith("prod_"):
+            return
+        event.prevent_default()
+        value = table.get_cell_at(coord)
+        self._start_edit(coord, value, frequent_only=False)
+
     def on_data_table_cell_selected(
         self, event: DataTable.CellSelected
     ) -> None:
@@ -183,7 +206,7 @@ class OrderScreen(Screen):
             return
         self._start_edit(event.coordinate, event.value)
 
-    def _start_edit(self, coord: Coordinate, current_value: object) -> None:
+    def _start_edit(self, coord: Coordinate, current_value: object, frequent_only: bool = True) -> None:
         col_key = COLUMNS[coord.column][0]
         self._editing = coord
         table = self.query_one("#order-table", DataTable)
@@ -191,7 +214,8 @@ class OrderScreen(Screen):
 
         if col_key.startswith("prod_"):
             # Product selector
-            options = [(name, pid) for name, pid in self._product_options]
+            source = self._frequent_product_options if frequent_only else self._product_options
+            options = [(name, pid) for name, pid in source]
             select = Select(
                 options,
                 prompt="選擇產品",
@@ -256,6 +280,9 @@ class OrderScreen(Screen):
 
         self._refresh_customer_order_count()
         self._dismiss_editor(table)
+        # Jump to quantity cell
+        qty_col = coord.column + 1
+        table.move_cursor(row=coord.row, column=qty_col)
 
     def _finish_edit_qty(self, coord: Coordinate, new_value: str) -> None:
         table = self.query_one("#order-table", DataTable)
