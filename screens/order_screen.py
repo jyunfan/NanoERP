@@ -7,7 +7,8 @@ import os
 from textual.app import ComposeResult
 from textual.events import Key
 from textual.screen import Screen
-from textual.widgets import Header, Footer, DataTable, Label, Input, Select
+from textual.widgets import Header, Footer, DataTable, Label, Input, OptionList
+from textual.widgets.option_list import Option
 from textual.containers import Horizontal
 from textual.binding import Binding
 from textual.coordinate import Coordinate
@@ -215,14 +216,14 @@ class OrderScreen(Screen):
         if col_key.startswith("prod_"):
             # Product selector
             source = self._frequent_product_options if frequent_only else self._product_options
-            options = [(name, pid) for name, pid in source]
-            select = Select(
-                options,
-                prompt="選擇產品",
+            self._product_option_ids = [pid for _name, pid in source]
+            ol = OptionList(
+                *[Option(name, id=str(pid)) for name, pid in source],
                 id="cell-editor",
             )
-            self.mount(select)
-            select.focus()
+            self.mount(ol)
+            ol.highlighted = 0
+            ol.focus()
         else:
             # Quantity input
             edit_input = Input(
@@ -237,11 +238,11 @@ class OrderScreen(Screen):
             return
         self._finish_edit_qty(self._editing, event.value)
 
-    def on_select_changed(self, event: Select.Changed) -> None:
+    def on_option_list_option_selected(self, event: OptionList.OptionSelected) -> None:
         if self._editing is None:
             return
-        if event.value is not Select.BLANK:
-            self._finish_edit_product(self._editing, int(event.value))
+        product_id = self._product_option_ids[event.option_index]
+        self._finish_edit_product(self._editing, product_id)
 
     def _get_group_index(self, col_index: int) -> int:
         return col_index // COLS_PER_GROUP

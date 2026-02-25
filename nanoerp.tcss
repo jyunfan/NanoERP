@@ -113,9 +113,8 @@ CustomerScreen SelectOverlay {
     height: 100%;
 }
 
-OrderScreen SelectOverlay {
-    height: auto;
-    max-height: 10;
+OrderScreen OptionList {
+    height: 1fr;
 }
 
 DateDialog {
