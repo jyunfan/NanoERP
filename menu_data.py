@@ -35,8 +35,23 @@ MENU_TREE = MenuNode(
                 MenuNode(id="3", label="3. 南部市場"),
             ],
         ),
-        MenuNode(id="4", label="4. 過帳與日報表"),
-        MenuNode(id="5", label="5. 結帳與其報表"),
+        MenuNode(
+            id="4",
+            label="4. 過帳與日報表",
+            children=[
+                MenuNode(id="back", label="0. 回上一頁", is_back=True),
+                MenuNode(id="1", label="1. 過帳"),
+                MenuNode(id="2", label="2. 日報表"),
+            ],
+        ),
+        MenuNode(
+            id="5",
+            label="5. 結帳與其報表",
+            children=[
+                MenuNode(id="back", label="0. 回上一頁", is_back=True),
+                MenuNode(id="1", label="1. 結帳"),
+            ],
+        ),
         MenuNode(id="6", label="6. 抄貨報表製作"),
         MenuNode(id="7", label="7. 系統維護檢查"),
     ],
