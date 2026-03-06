@@ -134,16 +134,25 @@ class OrderScreen(Screen):
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
-        # Get customer's frequent products with their order quantities for today
+        # Get customer's frequent products + any extra orders not in freq list
         cur.execute(
-            "SELECT cfp.product_id, o.quantity "
-            "FROM customer_freq_product cfp "
-            "LEFT JOIN order_table o ON o.customer_id = cfp.customer_id "
-            "  AND o.product_id = cfp.product_id "
-            "  AND o.order_date = ? AND o.posted = 0 "
-            "WHERE cfp.customer_id = ? "
-            "ORDER BY cfp.product_id",
-            (self.app.work_date, self._selected_customer_id),
+            "SELECT product_id, quantity FROM ("
+            "  SELECT cfp.product_id, o.quantity"
+            "  FROM customer_freq_product cfp"
+            "  LEFT JOIN order_table o ON o.customer_id = cfp.customer_id"
+            "    AND o.product_id = cfp.product_id"
+            "    AND o.order_date = ? AND o.posted = 0"
+            "  WHERE cfp.customer_id = ?"
+            "  UNION"
+            "  SELECT o.product_id, o.quantity"
+            "  FROM order_table o"
+            "  WHERE o.customer_id = ? AND o.order_date = ? AND o.posted = 0"
+            "    AND o.product_id NOT IN ("
+            "      SELECT product_id FROM customer_freq_product WHERE customer_id = ?"
+            "    )"
+            ") ORDER BY product_id",
+            (self.app.work_date, self._selected_customer_id,
+             self._selected_customer_id, self.app.work_date, self._selected_customer_id),
         )
         items = cur.fetchall()
         conn.close()
