@@ -41,6 +41,15 @@ def create_database():
         pass
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS supplier (
+            id INTEGER PRIMARY KEY,
+            name TEXT,
+            phone1 TEXT,
+            phone2 TEXT
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS order_table (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             customer_id INTEGER,
@@ -49,6 +58,41 @@ def create_database():
             order_date DATE,
             is_return BOOLEAN,
             posted BOOLEAN DEFAULT 0,
+            FOREIGN KEY (customer_id) REFERENCES customer(id),
+            FOREIGN KEY (product_id) REFERENCES product(id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS posting (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            customer_id INTEGER,
+            product_id INTEGER,
+            quantity INTEGER,
+            purchase_price INTEGER,
+            sale_price INTEGER,
+            posting_date DATE,
+            FOREIGN KEY (customer_id) REFERENCES customer(id),
+            FOREIGN KEY (product_id) REFERENCES product(id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS customer_product (
+            customer_id INTEGER,
+            product_id INTEGER,
+            sale_price INTEGER,
+            PRIMARY KEY (customer_id, product_id),
+            FOREIGN KEY (customer_id) REFERENCES customer(id),
+            FOREIGN KEY (product_id) REFERENCES product(id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS customer_freq_product (
+            customer_id INTEGER,
+            product_id INTEGER,
+            PRIMARY KEY (customer_id, product_id),
             FOREIGN KEY (customer_id) REFERENCES customer(id),
             FOREIGN KEY (product_id) REFERENCES product(id)
         )
