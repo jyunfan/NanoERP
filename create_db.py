@@ -98,6 +98,29 @@ def create_database():
         )
     """)
 
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS supplier_freq_product (
+            supplier_id INTEGER,
+            product_id INTEGER,
+            PRIMARY KEY (supplier_id, product_id),
+            FOREIGN KEY (supplier_id) REFERENCES supplier(id),
+            FOREIGN KEY (product_id) REFERENCES product(id)
+        )
+    """)
+
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS purchase_order (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            supplier_id INTEGER,
+            product_id INTEGER,
+            quantity INTEGER,
+            is_return BOOLEAN DEFAULT 0,
+            order_date DATE,
+            FOREIGN KEY (supplier_id) REFERENCES supplier(id),
+            FOREIGN KEY (product_id) REFERENCES product(id)
+        )
+    """)
+
     conn.commit()
     conn.close()
 

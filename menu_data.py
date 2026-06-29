@@ -33,6 +33,7 @@ MENU_TREE = MenuNode(
                 MenuNode(id="1", label="1. 其餘市場"),
                 MenuNode(id="2", label="2. 建國市場"),
                 MenuNode(id="3", label="3. 南部市場"),
+                MenuNode(id="purchase", label="4. 廠商進貨"),
             ],
         ),
         MenuNode(

@@ -183,6 +183,34 @@ OrderScreen OptionList {
     height: 100%;
 }
 
+#purchase-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    padding: 1 2;
+    width: 100%;
+}
+
+#purchase-container {
+    width: 100%;
+    height: 1fr;
+}
+
+#supplier-list {
+    width: 28;
+    height: 100%;
+    border: solid $primary;
+}
+
+#purchase-table {
+    width: 1fr;
+    height: 100%;
+}
+
+PurchaseScreen OptionList {
+    height: 1fr;
+}
+
 DateDialog {
     align: center middle;
 }
