@@ -25,10 +25,16 @@ COLS_PER_GROUP = 2  # product + quantity
 NUM_GROUPS = 3  # 3 groups per row
 
 # Column definitions: (key, label) repeated for each group
-COLUMNS: list[tuple[str, str]] = []
+QUANTITY_COLUMNS: list[tuple[str, str]] = []
 for i in range(NUM_GROUPS):
-    COLUMNS.append((f"prod_{i}", f"名稱"))
-    COLUMNS.append((f"qty_{i}", "數量"))
+    QUANTITY_COLUMNS.append((f"prod_{i}", "名稱"))
+    QUANTITY_COLUMNS.append((f"qty_{i}", "數量"))
+
+PRICE_COLUMNS = [
+    ("product", "名稱"),
+    ("purchase_price", "進價"),
+    ("sale_price", "售價"),
+]
 
 
 class OrderScreen(Screen):
@@ -36,6 +42,7 @@ class OrderScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_product", "新增產品", show=True),
+        Binding("f3", "toggle_price_mode", "售價模式", show=True),
         Binding("delete", "delete_product", "刪除產品", show=True),
         Binding("tab", "toggle_focus", "左右切換", show=True),
     ]
@@ -49,12 +56,16 @@ class OrderScreen(Screen):
         self._customer_ids: list[int] = []  # row index -> customer id
         # Maps (row_index, group_index) -> product_id from customer_freq_product
         self._cell_product_map: dict[tuple[int, int], int] = {}
+        # Maps row_index -> product_id in price mode
+        self._price_product_map: dict[int, int] = {}
         # All products: id -> short_name
         self._product_names: dict[int, str] = {}
         # All products list for add dialog
         self._all_products: list[tuple[str, int]] = []  # (name, id)
         # Product IDs shown in current add dialog
         self._add_option_ids: list[int] = []
+        self._mode = "quantity"
+        self._editing_mode: str | None = None
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -66,11 +77,17 @@ class OrderScreen(Screen):
 
     def on_mount(self) -> None:
         self._load_products()
+        table = self.query_one("#order-table", DataTable)
+        self._configure_order_columns(table)
         self._load_customers()
         self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
-        table = self.query_one("#order-table", DataTable)
-        for col_key, col_label in COLUMNS:
+
+    def _configure_order_columns(self, table: DataTable) -> None:
+        table.clear(columns=True)
+        columns = PRICE_COLUMNS if self._mode == "price" else QUANTITY_COLUMNS
+        for col_key, col_label in columns:
             table.add_column(col_label, key=col_key)
+        table.cursor_type = "cell"
 
     def _on_work_date_changed(self, new_value: str) -> None:
         self._load_customers()
@@ -97,6 +114,7 @@ class OrderScreen(Screen):
         order_table = self.query_one("#order-table", DataTable)
         order_table.clear()
         self._cell_product_map.clear()
+        self._price_product_map.clear()
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
@@ -136,9 +154,14 @@ class OrderScreen(Screen):
 
     def _load_orders(self) -> None:
         """Load customer_freq_product list with quantities from order_draft."""
+        if self._mode == "price":
+            self._load_price_rows()
+            return
+
         table = self.query_one("#order-table", DataTable)
         table.clear()
         self._cell_product_map.clear()
+        self._price_product_map.clear()
 
         if self._selected_customer_id is None:
             return
@@ -187,6 +210,48 @@ class OrderScreen(Screen):
             table.add_row(*row_values, key=f"row_{row_idx}")
             row_idx += 1
 
+    def _load_price_rows(self) -> None:
+        """Load customer products with purchase price reference and editable sale price."""
+        table = self.query_one("#order-table", DataTable)
+        table.clear()
+        self._cell_product_map.clear()
+        self._price_product_map.clear()
+
+        if self._selected_customer_id is None:
+            return
+
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT i.product_id, p.short_name, p.purchase_price, "
+            "       COALESCE(cp.sale_price, p.sale_price) AS sale_price "
+            "FROM ("
+            "  SELECT product_id FROM customer_freq_product WHERE customer_id = ?"
+            "  UNION"
+            "  SELECT product_id FROM order_draft WHERE customer_id = ? AND is_return = 0"
+            ") i "
+            "JOIN product p ON p.id = i.product_id "
+            "LEFT JOIN customer_product cp "
+            "  ON cp.customer_id = ? AND cp.product_id = i.product_id "
+            "ORDER BY i.product_id",
+            (
+                self._selected_customer_id,
+                self._selected_customer_id,
+                self._selected_customer_id,
+            ),
+        )
+        for row_idx, (product_id, name, purchase_price, sale_price) in enumerate(
+            cur.fetchall()
+        ):
+            self._price_product_map[row_idx] = product_id
+            table.add_row(
+                name or str(product_id),
+                self._format_number(purchase_price),
+                self._format_number(sale_price),
+                key=f"row_{row_idx}",
+            )
+        conn.close()
+
     def _refresh_customer_order_count(self) -> None:
         if self._selected_customer_id is None:
             return
@@ -213,7 +278,16 @@ class OrderScreen(Screen):
             return
         if self._selected_customer_id is None:
             return
-        col_key = COLUMNS[event.coordinate.column][0]
+        columns = PRICE_COLUMNS if self._mode == "price" else QUANTITY_COLUMNS
+        col_key = columns[event.coordinate.column][0]
+        if self._mode == "price":
+            if col_key != "sale_price":
+                return
+            if event.coordinate.row not in self._price_product_map:
+                return
+            self._start_edit_price(event.coordinate, event.value)
+            return
+
         # Only quantity cells are editable
         if not col_key.startswith("qty_"):
             return
@@ -225,6 +299,19 @@ class OrderScreen(Screen):
 
     def _start_edit_qty(self, coord: Coordinate, current_value: object) -> None:
         self._editing = coord
+        self._editing_mode = "quantity"
+        table = self.query_one("#order-table", DataTable)
+        table.display = False
+        edit_input = Input(
+            value=str(current_value) if current_value else "",
+            id="cell-editor",
+        )
+        self.mount(edit_input)
+        edit_input.focus()
+
+    def _start_edit_price(self, coord: Coordinate, current_value: object) -> None:
+        self._editing = coord
+        self._editing_mode = "price"
         table = self.query_one("#order-table", DataTable)
         table.display = False
         edit_input = Input(
@@ -236,6 +323,9 @@ class OrderScreen(Screen):
 
     def on_input_submitted(self, event: Input.Submitted) -> None:
         if self._editing is None:
+            return
+        if self._editing_mode == "price":
+            self._finish_edit_price(self._editing, event.value)
             return
         self._finish_edit_qty(self._editing, event.value)
 
@@ -286,10 +376,56 @@ class OrderScreen(Screen):
         self._refresh_customer_order_count()
         self._dismiss_editor(table)
 
+    def _finish_edit_price(self, coord: Coordinate, new_value: str) -> None:
+        table = self.query_one("#order-table", DataTable)
+        product_id = self._price_product_map.get(coord.row)
+
+        if product_id is not None and self._selected_customer_id is not None:
+            conn = sqlite3.connect(DB_PATH)
+            cur = conn.cursor()
+            try:
+                parsed_value = self._parse_number(new_value)
+            except ValueError:
+                conn.close()
+                self._dismiss_editor(table)
+                return
+            if parsed_value is None:
+                cur.execute(
+                    "DELETE FROM customer_product "
+                    "WHERE customer_id = ? AND product_id = ?",
+                    (self._selected_customer_id, product_id),
+                )
+                cur.execute("SELECT sale_price FROM product WHERE id = ?", (product_id,))
+                default_row = cur.fetchone()
+                display_value = self._format_number(default_row[0] if default_row else "")
+            else:
+                cur.execute(
+                    "INSERT INTO customer_product (customer_id, product_id, sale_price) "
+                    "VALUES (?, ?, ?) "
+                    "ON CONFLICT(customer_id, product_id) "
+                    "DO UPDATE SET sale_price = excluded.sale_price",
+                    (self._selected_customer_id, product_id, parsed_value),
+                )
+                display_value = self._format_number(parsed_value)
+            conn.commit()
+            conn.close()
+        else:
+            display_value = new_value
+
+        cell_key = table.coordinate_to_cell_key(coord)
+        table.update_cell(
+            cell_key.row_key,
+            cell_key.column_key,
+            display_value,
+            update_width=True,
+        )
+        self._dismiss_editor(table)
+
     def _dismiss_editor(self, table: DataTable) -> None:
         editor = self.query_one("#cell-editor")
         editor.remove()
         self._editing = None
+        self._editing_mode = None
         table.display = True
         table.focus()
 
@@ -297,6 +433,20 @@ class OrderScreen(Screen):
         focused = self.app.focused
         table = self.query_one("#order-table", DataTable)
         return focused is table
+
+    def action_toggle_price_mode(self) -> None:
+        if self._editing is not None:
+            return
+        if self._add_dialog_open():
+            return
+        self._mode = "price" if self._mode == "quantity" else "quantity"
+        table = self.query_one("#order-table", DataTable)
+        self._configure_order_columns(table)
+        self._update_title()
+        self._load_orders()
+        table.focus()
+        if table.row_count > 0:
+            table.move_cursor(row=0, column=0)
 
     def action_toggle_focus(self) -> None:
         if self._editing is not None:
@@ -363,7 +513,7 @@ class OrderScreen(Screen):
             return
 
         # Get current freq product IDs for this customer
-        existing_pids = set(self._cell_product_map.values())
+        existing_pids = self._visible_product_ids()
 
         # Filter out already-added products
         available = [(name, pid) for name, pid in self._all_products if pid not in existing_pids]
@@ -416,9 +566,18 @@ class OrderScreen(Screen):
     def _switch_market(self, market: int) -> None:
         self._market = market
         self._title = MARKET_NAMES[market]
-        self.query_one("#order-title", Label).update(self._title)
+        self._update_title()
         self._load_customers()
         self.query_one("#customer-list", DataTable).focus()
+
+    def _update_title(self) -> None:
+        suffix = " - 售價模式" if self._mode == "price" else ""
+        self.query_one("#order-title", Label).update(f"{self._title}{suffix}")
+
+    def _visible_product_ids(self) -> set[int]:
+        if self._mode == "price":
+            return set(self._price_product_map.values())
+        return set(self._cell_product_map.values())
 
     def action_delete_product(self) -> None:
         """DEL: Remove product from customer_freq_product."""
@@ -431,8 +590,11 @@ class OrderScreen(Screen):
 
         table = self.query_one("#order-table", DataTable)
         coord = table.cursor_coordinate
-        group_idx = coord.column // COLS_PER_GROUP
-        product_id = self._cell_product_map.get((coord.row, group_idx))
+        if self._mode == "price":
+            product_id = self._price_product_map.get(coord.row)
+        else:
+            group_idx = coord.column // COLS_PER_GROUP
+            product_id = self._cell_product_map.get((coord.row, group_idx))
 
         if product_id is None:
             return
@@ -450,8 +612,28 @@ class OrderScreen(Screen):
             "WHERE customer_id = ? AND product_id = ? AND is_return = 0",
             (self._selected_customer_id, product_id),
         )
+        cur.execute(
+            "DELETE FROM customer_product WHERE customer_id = ? AND product_id = ?",
+            (self._selected_customer_id, product_id),
+        )
         conn.commit()
         conn.close()
 
         self._refresh_customer_order_count()
         self._load_orders()
+
+    @staticmethod
+    def _parse_number(value: str) -> int | float | None:
+        stripped = value.strip()
+        if not stripped:
+            return None
+        number = float(stripped)
+        return int(number) if number.is_integer() else number
+
+    @staticmethod
+    def _format_number(value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
