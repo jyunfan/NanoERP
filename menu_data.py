@@ -51,7 +51,15 @@ MENU_TREE = MenuNode(
             children=[
                 MenuNode(id="back", label="0. 回上一頁", is_back=True),
                 MenuNode(id="1", label="1. 過帳"),
-                MenuNode(id="2", label="2. 日報表"),
+                MenuNode(
+                    id="daily_reports",
+                    label="2. 日報表",
+                    children=[
+                        MenuNode(id="back", label="0. 回上一頁", is_back=True),
+                        MenuNode(id="shipping", label="1. 出貨單"),
+                        MenuNode(id="daily_account", label="2. 日帳單"),
+                    ],
+                ),
             ],
         ),
         MenuNode(

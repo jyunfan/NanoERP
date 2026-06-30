@@ -176,6 +176,51 @@ OrderScreen OptionList {
     height: 100%;
 }
 
+#shipping-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    padding: 1 2;
+    width: 100%;
+}
+
+#shipping-container {
+    width: 100%;
+    height: 1fr;
+}
+
+#shipping-left {
+    width: 28;
+    height: 100%;
+}
+
+#shipping-market-select {
+    width: 100%;
+}
+
+#shipping-customer-list {
+    width: 100%;
+    height: 1fr;
+    border: solid $primary;
+}
+
+#shipping-document {
+    width: 1fr;
+    height: 100%;
+}
+
+#shipping-document-title {
+    width: 100%;
+    text-align: center;
+    text-style: bold;
+    padding: 1 2;
+}
+
+#shipping-table {
+    width: 100%;
+    height: 1fr;
+}
+
 #checkout-title {
     text-align: center;
     text-style: bold;

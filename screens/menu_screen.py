@@ -83,7 +83,10 @@ class MenuScreen(Screen):
         elif self._node.id == "4" and selected_id == "1":
             from screens.posting_screen import PostingScreen
             self.app.push_screen(PostingScreen(title=child.label))
-        elif self._node.id == "4" and selected_id == "2":
+        elif self._node.id == "daily_reports" and selected_id == "shipping":
+            from screens.shipping_report_screen import ShippingReportScreen
+            self.app.push_screen(ShippingReportScreen(title=child.label))
+        elif self._node.id == "daily_reports" and selected_id == "daily_account":
             from screens.daily_report_screen import DailyReportScreen
             self.app.push_screen(DailyReportScreen(title=child.label))
         elif self._node.id == "5" and selected_id == "1":
