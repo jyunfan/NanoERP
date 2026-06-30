@@ -56,6 +56,8 @@ class DailyReportScreen(Screen):
         report_table = self.query_one("#report-table", DataTable)
         report_table.add_column("項目名稱", key="product_name")
         report_table.add_column("數量", key="quantity")
+        report_table.add_column("單價", key="sale_price")
+        report_table.add_column("金額", key="amount")
 
         self._load_customers()
         self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
@@ -117,19 +119,38 @@ class DailyReportScreen(Screen):
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT p.short_name, o.quantity "
+            "SELECT p.short_name, o.quantity, COALESCE(o.sale_price, p.sale_price) "
             "FROM order_table o "
             "JOIN product p ON o.product_id = p.id "
             "WHERE o.customer_id = ? AND o.order_date = ? "
             "ORDER BY o.id",
             (self._selected_customer_id, self.app.work_date),
         )
+        total = 0
         for row in cur.fetchall():
-            name, qty = row
+            name, qty, sale_price = row
+            quantity = qty if qty is not None else 0
+            price = sale_price if sale_price is not None else 0
+            amount = quantity * price
+            total += amount
             report_table.add_row(
-                name or "", str(qty) if qty is not None else ""
+                name or "",
+                self._format_number(qty),
+                self._format_number(sale_price),
+                self._format_number(amount),
             )
         conn.close()
+
+        if report_table.row_count > 0:
+            report_table.add_row("", "", "合計", self._format_number(total))
+
+    @staticmethod
+    def _format_number(value: object) -> str:
+        if value is None:
+            return ""
+        if isinstance(value, float) and value.is_integer():
+            return str(int(value))
+        return str(value)
 
     def action_go_back_or_toggle(self) -> None:
         focused = self.app.focused

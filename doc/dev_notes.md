@@ -1,5 +1,17 @@
 # 開發筆記
 
+## 2026-06-30: UI-4 日帳單金額
+
+### 變更檔案
+- `screens/daily_report_screen.py`
+- `doc/UI/UI-4-過帳與日報表.md`
+- `SPEC.md`
+
+### 說明
+- 日帳單明細新增 `單價` 與 `金額`，並在底部顯示 `合計`。
+- 單價優先使用過帳時保存的 `order_table.sale_price`；舊資料缺少快照時 fallback 到 `product.sale_price`。
+- 金額計算為 `order_table.quantity * 單價`。
+
 ## 2026-06-30: UI-3 客戶訂單初始畫面
 
 ### 變更檔案
