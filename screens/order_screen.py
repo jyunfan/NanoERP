@@ -9,7 +9,7 @@ from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Header, Footer, DataTable, Label, Input, OptionList
 from textual.widgets.option_list import Option
-from textual.containers import Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.binding import Binding
 from textual.coordinate import Coordinate
 
@@ -72,13 +72,22 @@ class OrderScreen(Screen):
         yield Label(self._title, id="order-title")
         with Horizontal(id="order-container"):
             yield DataTable(id="customer-list", cursor_type="row")
-            yield DataTable(id="order-table", cursor_type="cell")
+            with Vertical(id="order-middle"):
+                yield Label(
+                    "Tab : 左右切換\nEnter : 選定\nEsc : 跳出",
+                    id="order-prompt",
+                )
+                yield DataTable(id="order-table", cursor_type="cell")
+            yield DataTable(id="order-total-table", cursor_type="none")
         yield Footer()
 
     def on_mount(self) -> None:
         self._load_products()
         table = self.query_one("#order-table", DataTable)
         self._configure_order_columns(table)
+        total_table = self.query_one("#order-total-table", DataTable)
+        total_table.add_column("產品", key="product_name")
+        total_table.add_column("總數", key="quantity")
         self._load_customers()
         self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
 
@@ -132,25 +141,70 @@ class OrderScreen(Screen):
             count_str = str(count) if count > 0 else ""
             cust_table.add_row(name or str(cid), count_str, key=f"cust_{cid}")
         conn.close()
-
-    def on_data_table_row_highlighted(
-        self, event: DataTable.RowHighlighted
-    ) -> None:
-        if event.data_table.id != "customer-list":
-            return
-        if event.cursor_row < len(self._customer_ids):
-            self._selected_customer_id = self._customer_ids[event.cursor_row]
-            self._load_orders()
+        self._load_product_totals()
+        self._show_initial_view()
 
     def on_data_table_row_selected(
         self, event: DataTable.RowSelected
     ) -> None:
         if event.data_table.id != "customer-list":
             return
+        if event.cursor_row >= len(self._customer_ids):
+            return
+        self._selected_customer_id = self._customer_ids[event.cursor_row]
+        self._mode = "quantity"
+        self._update_title()
+        table = self.query_one("#order-table", DataTable)
+        self._configure_order_columns(table)
+        self._show_order_detail()
+        self._load_orders()
         table = self.query_one("#order-table", DataTable)
         table.focus()
         if table.row_count > 0:
             table.move_cursor(row=0, column=0)
+
+    def _show_initial_view(self) -> None:
+        self._selected_customer_id = None
+        self._cell_product_map.clear()
+        self._price_product_map.clear()
+        self.query_one("#order-prompt", Label).display = True
+        table = self.query_one("#order-table", DataTable)
+        table.display = False
+        table.clear()
+        self.query_one("#order-total-table", DataTable).display = True
+        self._mode = "quantity"
+        self._update_title()
+
+    def _show_order_detail(self) -> None:
+        self.query_one("#order-prompt", Label).display = False
+        self.query_one("#order-table", DataTable).display = True
+        self.query_one("#order-total-table", DataTable).display = False
+
+    def _load_product_totals(self) -> None:
+        total_table = self.query_one("#order-total-table", DataTable)
+        total_table.clear()
+
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT p.short_name, SUM(o.quantity) AS quantity "
+            "FROM order_draft o "
+            "JOIN customer c ON c.id = o.customer_id "
+            "JOIN product p ON p.id = o.product_id "
+            "WHERE c.market = ? AND o.is_return = 0 "
+            "GROUP BY o.product_id "
+            "ORDER BY p.id",
+            (self._market,),
+        )
+        rows = cur.fetchall()
+        conn.close()
+
+        if not rows:
+            total_table.add_row("(無訂單)", "")
+            return
+
+        for name, quantity in rows:
+            total_table.add_row(name or "", self._format_number(quantity))
 
     def _load_orders(self) -> None:
         """Load customer_freq_product list with quantities from order_draft."""
@@ -268,6 +322,7 @@ class OrderScreen(Screen):
         count_str = str(count) if count > 0 else ""
         row_key = f"cust_{self._selected_customer_id}"
         cust_table.update_cell(row_key, "order_count", count_str, update_width=True)
+        self._load_product_totals()
 
     def on_data_table_cell_selected(
         self, event: DataTable.CellSelected
@@ -434,10 +489,20 @@ class OrderScreen(Screen):
         table = self.query_one("#order-table", DataTable)
         return focused is table
 
+    def _focus_is_on_product_totals(self) -> bool:
+        focused = self.app.focused
+        table = self.query_one("#order-total-table", DataTable)
+        return focused is table
+
+    def _detail_active(self) -> bool:
+        return self._selected_customer_id is not None
+
     def action_toggle_price_mode(self) -> None:
         if self._editing is not None:
             return
         if self._add_dialog_open():
+            return
+        if not self._detail_active():
             return
         self._mode = "price" if self._mode == "quantity" else "quantity"
         table = self.query_one("#order-table", DataTable)
@@ -456,6 +521,12 @@ class OrderScreen(Screen):
         if self._focus_is_on_table():
             self.query_one("#customer-list", DataTable).focus()
             return
+        if self._focus_is_on_product_totals():
+            self.query_one("#customer-list", DataTable).focus()
+            return
+        if not self._detail_active():
+            self.query_one("#order-total-table", DataTable).focus()
+            return
         table = self.query_one("#order-table", DataTable)
         table.focus()
         if table.row_count > 0:
@@ -466,6 +537,9 @@ class OrderScreen(Screen):
             table = self.query_one("#order-table", DataTable)
             self._dismiss_editor(table)
         elif self._focus_is_on_table():
+            self._show_initial_view()
+            self.query_one("#customer-list", DataTable).focus()
+        elif self._focus_is_on_product_totals():
             self.query_one("#customer-list", DataTable).focus()
         else:
             self.app.pop_screen()

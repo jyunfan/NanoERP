@@ -121,9 +121,28 @@ CustomerScreen SelectOverlay {
     border: solid $primary;
 }
 
-#order-table {
+#order-middle {
     width: 1fr;
     height: 100%;
+}
+
+#order-prompt {
+    width: 100%;
+    height: 100%;
+    content-align: center middle;
+    text-align: center;
+    text-style: bold;
+}
+
+#order-table {
+    width: 100%;
+    height: 100%;
+}
+
+#order-total-table {
+    width: 28;
+    height: 100%;
+    border: solid $primary;
 }
 
 OrderScreen OptionList {
