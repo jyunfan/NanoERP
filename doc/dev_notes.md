@@ -1,5 +1,34 @@
 # 開發筆記
 
+## 2026-06-29: 訂單暫存與過帳資料流
+
+### 變更檔案
+- `create_db.py`
+- `main.py`
+- `screens/order_screen.py`
+- `screens/posting_screen.py`
+- `screens/menu_screen.py`
+- `doc/DB.md`
+
+### 設計計劃
+- 使用者在客戶訂單畫面輸入的資料先寫入 `order_draft`，不直接寫入帶日期的正式訂單。
+- `order_draft` 不存工作日期；工作日期只在執行過帳時使用。
+- 過帳時建立 `posting_batch`，再把所有 `order_draft` 明細寫入 `order_table`，並用當下 `app.work_date` 作為 `order_date`。
+- `order_table` 即為正式過帳明細，保存價格快照、過帳批次與過帳時間。
+- 過帳完成後刪除已過帳的 `order_draft`，避免重複過帳。
+- 日報表與結帳單只讀正式資料 `order_table`，所以過帳前暫存訂單不會出現在報表中。
+- 現有 `order_table` 資料保留為正式歷史資料；migration 只補 schema，不把既有日期資料搬成無日期暫存資料。
+- 補齊目前 `db.sql` 缺少但程式已使用的 `supplier_freq_product` 與 `purchase_order` 表。
+- 開發階段直接移除重複的 `posting` 明細表與 `order_table.posted` 欄位；過帳狀態由 `posting_batch` 與 `order_table.order_date` 表達。
+
+### DB 調整
+- 新增 `order_draft`：客戶訂單暫存明細。
+- 新增 `posting_batch`：一次過帳批次。
+- 擴充 `order_table`：新增 `posting_batch_id`、`purchase_price`、`sale_price`、`posted_at`。
+- 移除 `posting` table：不再複製一份與 `order_table` 重複的過帳明細。
+- 移除 `order_table.posted`：正式訂單皆為過帳後資料，不需要額外旗標。
+- App 啟動時會呼叫 DB 初始化，對既有 SQLite database 自動補齊缺少的表與欄位。
+
 ## 2026-02-22: 選單數字鍵快速選擇
 
 ### 變更檔案

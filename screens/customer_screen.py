@@ -4,6 +4,7 @@ import sqlite3
 import os
 
 from textual.app import ComposeResult
+from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Header, Footer, DataTable, Label, Input, Select
 from textual.binding import Binding
@@ -22,12 +23,19 @@ COLUMNS = [
     ("phone2", "電話2"),
 ]
 
+MARKET_NAMES = {
+    1: "1. 其餘市場",
+    2: "2. 建國市場",
+    3: "3. 南部市場",
+}
+
 
 class CustomerScreen(Screen):
     BINDINGS = [
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_row", "新增", show=True),
+        Binding("alt+f9", "delete_row", "刪除", show=True),
     ]
 
     def __init__(self, market: int, title: str) -> None:
@@ -171,3 +179,48 @@ class CustomerScreen(Screen):
         table = self.query_one("#customer-table", DataTable)
         table.add_row(new_id, "", "", "", "", "", key=str(new_id))
         table.move_cursor(row=table.row_count - 1, column=0)
+
+    def on_key(self, event: Key) -> None:
+        if self._editing is not None:
+            return
+        if event.character in ("1", "2", "3"):
+            event.prevent_default()
+            self._switch_market(int(event.character))
+            return
+        if event.character == "4":
+            event.prevent_default()
+            from screens.supplier_screen import SupplierScreen
+
+            self.app.push_screen(SupplierScreen(title="4. 廠商"))
+            return
+
+    def _switch_market(self, market: int) -> None:
+        self._market = market
+        self._title = MARKET_NAMES[market]
+        self.query_one("#customer-title", Label).update(self._title)
+        self._load_data()
+
+    def action_delete_row(self) -> None:
+        if self._editing is not None:
+            return
+        table = self.query_one("#customer-table", DataTable)
+        if table.row_count == 0:
+            return
+
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+        customer_id = int(row_key.value)
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA foreign_keys = ON")
+        cur = conn.cursor()
+        cur.execute("DELETE FROM customer_freq_product WHERE customer_id = ?", (customer_id,))
+        cur.execute("DELETE FROM customer_product WHERE customer_id = ?", (customer_id,))
+        cur.execute("DELETE FROM order_draft WHERE customer_id = ?", (customer_id,))
+        cur.execute("DELETE FROM order_table WHERE customer_id = ?", (customer_id,))
+        cur.execute("DELETE FROM customer WHERE id = ?", (customer_id,))
+        conn.commit()
+        conn.close()
+
+        self._load_data()
+        if table.row_count > 0:
+            table.move_cursor(row=min(table.cursor_row, table.row_count - 1), column=0)

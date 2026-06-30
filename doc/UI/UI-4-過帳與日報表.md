@@ -98,8 +98,8 @@
 
 資料邏輯待確認：
 
-- 過帳是否將 `order_table` 搬移或複製到 `posting` table。
-- 過帳後原訂單是否鎖定、標記 `posted`，或仍可編輯。
+- 過帳從 `order_draft` 寫入 `order_table`，並建立 `posting_batch` 批次記錄。
+- `order_table` 是正式過帳明細，不另寫 `posting` table，也不使用 `posted` 欄位。
 - 客戶退貨是否在過帳前併入同一批次。
 
 ## 4.2 日報表

@@ -89,6 +89,19 @@ CustomerScreen SelectOverlay {
     height: 1fr;
 }
 
+#supplier-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    padding: 1 2;
+    width: 100%;
+}
+
+#supplier-table {
+    width: 100%;
+    height: 1fr;
+}
+
 #order-title {
     text-align: center;
     text-style: bold;
@@ -114,6 +127,19 @@ CustomerScreen SelectOverlay {
 }
 
 OrderScreen OptionList {
+    height: 1fr;
+}
+
+#total-check-title {
+    text-align: center;
+    text-style: bold;
+    color: $accent;
+    padding: 1 2;
+    width: 100%;
+}
+
+#total-check-table {
+    width: 100%;
     height: 1fr;
 }
 

@@ -29,6 +29,7 @@ class ProductScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_row", "新增", show=True),
+        Binding("f9", "delete_row", "刪除", show=True),
     ]
 
     def __init__(self, title: str) -> None:
@@ -166,5 +167,32 @@ class ProductScreen(Screen):
         conn.close()
 
         table = self.query_one("#product-table", DataTable)
-        table.add_row(new_id, "", "", "", "", "", "", "", key=str(new_id))
+        table.add_row(new_id, "", "", "", "", "", "", "", "", key=str(new_id))
         table.move_cursor(row=table.row_count - 1, column=0)
+
+    def action_delete_row(self) -> None:
+        if self._editing is not None:
+            return
+        table = self.query_one("#product-table", DataTable)
+        if table.row_count == 0:
+            return
+
+        row_key = table.coordinate_to_cell_key(table.cursor_coordinate).row_key
+        product_id = int(row_key.value)
+
+        conn = sqlite3.connect(DB_PATH)
+        conn.execute("PRAGMA foreign_keys = ON")
+        cur = conn.cursor()
+        cur.execute("DELETE FROM customer_freq_product WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM supplier_freq_product WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM customer_product WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM order_draft WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM order_table WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM purchase_order WHERE product_id = ?", (product_id,))
+        cur.execute("DELETE FROM product WHERE id = ?", (product_id,))
+        conn.commit()
+        conn.close()
+
+        self._load_data()
+        if table.row_count > 0:
+            table.move_cursor(row=min(table.cursor_row, table.row_count - 1), column=0)

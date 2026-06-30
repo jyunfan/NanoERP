@@ -15,6 +15,12 @@ from textual.coordinate import Coordinate
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
+MARKET_NAMES = {
+    1: "1. 其餘市場",
+    2: "2. 建國市場",
+    3: "3. 南部市場",
+}
+
 COLS_PER_GROUP = 2  # product + quantity
 NUM_GROUPS = 3  # 3 groups per row
 
@@ -31,6 +37,7 @@ class OrderScreen(Screen):
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_product", "新增產品", show=True),
         Binding("delete", "delete_product", "刪除產品", show=True),
+        Binding("tab", "toggle_focus", "左右切換", show=True),
     ]
 
     def __init__(self, market: int, title: str) -> None:
@@ -86,16 +93,20 @@ class OrderScreen(Screen):
         cust_table.add_column("客戶名稱", key="cust_name")
         cust_table.add_column("訂單數目", key="order_count")
         self._customer_ids = []
+        self._selected_customer_id = None
+        order_table = self.query_one("#order-table", DataTable)
+        order_table.clear()
+        self._cell_product_map.clear()
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
             "SELECT c.id, c.name, COUNT(o.id) as order_count "
             "FROM customer c "
-            "LEFT JOIN order_table o ON o.customer_id = c.id AND o.order_date = ? AND o.posted = 0 "
+            "LEFT JOIN order_draft o ON o.customer_id = c.id "
             "WHERE c.market = ? "
             "GROUP BY c.id "
             "ORDER BY c.id",
-            (self.app.work_date, self._market),
+            (self._market,),
         )
         for row in cur.fetchall():
             cid, name, count = row
@@ -124,7 +135,7 @@ class OrderScreen(Screen):
             table.move_cursor(row=0, column=0)
 
     def _load_orders(self) -> None:
-        """Load customer_freq_product list with quantities from order_table."""
+        """Load customer_freq_product list with quantities from order_draft."""
         table = self.query_one("#order-table", DataTable)
         table.clear()
         self._cell_product_map.clear()
@@ -139,20 +150,23 @@ class OrderScreen(Screen):
             "SELECT product_id, quantity FROM ("
             "  SELECT cfp.product_id, o.quantity"
             "  FROM customer_freq_product cfp"
-            "  LEFT JOIN order_table o ON o.customer_id = cfp.customer_id"
+            "  LEFT JOIN order_draft o ON o.customer_id = cfp.customer_id"
             "    AND o.product_id = cfp.product_id"
-            "    AND o.order_date = ? AND o.posted = 0"
+            "    AND o.is_return = 0"
             "  WHERE cfp.customer_id = ?"
             "  UNION"
             "  SELECT o.product_id, o.quantity"
-            "  FROM order_table o"
-            "  WHERE o.customer_id = ? AND o.order_date = ? AND o.posted = 0"
+            "  FROM order_draft o"
+            "  WHERE o.customer_id = ? AND o.is_return = 0"
             "    AND o.product_id NOT IN ("
             "      SELECT product_id FROM customer_freq_product WHERE customer_id = ?"
             "    )"
             ") ORDER BY product_id",
-            (self.app.work_date, self._selected_customer_id,
-             self._selected_customer_id, self.app.work_date, self._selected_customer_id),
+            (
+                self._selected_customer_id,
+                self._selected_customer_id,
+                self._selected_customer_id,
+            ),
         )
         items = cur.fetchall()
         conn.close()
@@ -180,9 +194,9 @@ class OrderScreen(Screen):
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
-            "SELECT COUNT(id) FROM order_table "
-            "WHERE customer_id = ? AND order_date = ? AND posted = 0",
-            (self._selected_customer_id, self.app.work_date),
+            "SELECT COUNT(id) FROM order_draft "
+            "WHERE customer_id = ? AND is_return = 0",
+            (self._selected_customer_id,),
         )
         count = cur.fetchone()[0]
         conn.close()
@@ -238,28 +252,30 @@ class OrderScreen(Screen):
             if qty > 0:
                 # Upsert: update if exists, insert if not
                 cur.execute(
-                    "SELECT id FROM order_table "
-                    "WHERE customer_id = ? AND product_id = ? AND order_date = ? AND posted = 0",
-                    (self._selected_customer_id, product_id, self.app.work_date),
+                    "SELECT id FROM order_draft "
+                    "WHERE customer_id = ? AND product_id = ? AND is_return = 0",
+                    (self._selected_customer_id, product_id),
                 )
                 existing = cur.fetchone()
                 if existing:
                     cur.execute(
-                        "UPDATE order_table SET quantity = ? WHERE id = ?",
+                        "UPDATE order_draft "
+                        "SET quantity = ?, updated_at = CURRENT_TIMESTAMP "
+                        "WHERE id = ?",
                         (qty, existing[0]),
                     )
                 else:
                     cur.execute(
-                        "INSERT INTO order_table (customer_id, product_id, quantity, order_date, is_return, posted) "
-                        "VALUES (?, ?, ?, ?, 0, 0)",
-                        (self._selected_customer_id, product_id, qty, self.app.work_date),
+                        "INSERT INTO order_draft (customer_id, product_id, quantity, is_return) "
+                        "VALUES (?, ?, ?, 0)",
+                        (self._selected_customer_id, product_id, qty),
                     )
             else:
                 # Quantity is 0 or empty: delete the order if it exists
                 cur.execute(
-                    "DELETE FROM order_table "
-                    "WHERE customer_id = ? AND product_id = ? AND order_date = ? AND posted = 0",
-                    (self._selected_customer_id, product_id, self.app.work_date),
+                    "DELETE FROM order_draft "
+                    "WHERE customer_id = ? AND product_id = ? AND is_return = 0",
+                    (self._selected_customer_id, product_id),
                 )
                 new_value = ""
             conn.commit()
@@ -281,6 +297,19 @@ class OrderScreen(Screen):
         focused = self.app.focused
         table = self.query_one("#order-table", DataTable)
         return focused is table
+
+    def action_toggle_focus(self) -> None:
+        if self._editing is not None:
+            return
+        if self._add_dialog_open():
+            return
+        if self._focus_is_on_table():
+            self.query_one("#customer-list", DataTable).focus()
+            return
+        table = self.query_one("#order-table", DataTable)
+        table.focus()
+        if table.row_count > 0:
+            table.move_cursor(row=0, column=0)
 
     def action_go_back_or_cancel(self) -> None:
         if self._editing is not None:
@@ -362,6 +391,34 @@ class OrderScreen(Screen):
                 self._dismiss_add_dialog()
             except Exception:
                 pass
+            return
+
+        if self._editing is not None or self._add_dialog_open():
+            return
+        if event.character in ("1", "2", "3"):
+            event.prevent_default()
+            self._switch_market(int(event.character))
+            return
+        if event.character == "4":
+            event.prevent_default()
+            from screens.total_check_screen import TotalCheckScreen
+
+            self.app.push_screen(TotalCheckScreen(title="4. 總數核對"))
+            return
+
+    def _add_dialog_open(self) -> bool:
+        try:
+            self.query_one("#add-product-dialog")
+            return True
+        except Exception:
+            return False
+
+    def _switch_market(self, market: int) -> None:
+        self._market = market
+        self._title = MARKET_NAMES[market]
+        self.query_one("#order-title", Label).update(self._title)
+        self._load_customers()
+        self.query_one("#customer-list", DataTable).focus()
 
     def action_delete_product(self) -> None:
         """DEL: Remove product from customer_freq_product."""
@@ -387,11 +444,11 @@ class OrderScreen(Screen):
             "DELETE FROM customer_freq_product WHERE customer_id = ? AND product_id = ?",
             (self._selected_customer_id, product_id),
         )
-        # Also remove any associated order for today
+        # Also remove any associated draft order.
         cur.execute(
-            "DELETE FROM order_table "
-            "WHERE customer_id = ? AND product_id = ? AND order_date = ? AND posted = 0",
-            (self._selected_customer_id, product_id, self.app.work_date),
+            "DELETE FROM order_draft "
+            "WHERE customer_id = ? AND product_id = ? AND is_return = 0",
+            (self._selected_customer_id, product_id),
         )
         conn.commit()
         conn.close()

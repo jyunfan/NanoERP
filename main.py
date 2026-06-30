@@ -4,6 +4,7 @@ from textual.app import App
 from textual.binding import Binding
 from textual.reactive import reactive
 
+from create_db import create_database
 from menu_data import MENU_TREE
 from screens.menu_screen import MenuScreen
 
@@ -20,6 +21,7 @@ class NanoERPApp(App):
     work_date: reactive[str] = reactive(lambda: date.today().isoformat())
 
     def on_mount(self) -> None:
+        create_database()
         self.sub_title = f"工作日期: {self.work_date}"
         self.push_screen(MenuScreen(MENU_TREE, is_root=True))
 

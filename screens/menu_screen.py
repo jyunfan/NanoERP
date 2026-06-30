@@ -63,17 +63,26 @@ class MenuScreen(Screen):
             self.app.push_screen(
                 CustomerScreen(market=int(selected_id), title=child.label)
             )
+        elif self._node.id == "1" and selected_id == "supplier":
+            from screens.supplier_screen import SupplierScreen
+            self.app.push_screen(SupplierScreen(title=child.label))
         elif self._node.id == "root" and selected_id == "2":
             from screens.product_screen import ProductScreen
             self.app.push_screen(ProductScreen(title=child.label))
-        elif self._node.id == "3" and selected_id in ("1", "2", "3"):
+        elif self._node.id == "customer_orders" and selected_id in ("1", "2", "3"):
             from screens.order_screen import OrderScreen
             self.app.push_screen(
                 OrderScreen(market=int(selected_id), title=child.label)
             )
+        elif self._node.id == "customer_orders" and selected_id == "total_check":
+            from screens.total_check_screen import TotalCheckScreen
+            self.app.push_screen(TotalCheckScreen(title=child.label))
         elif self._node.id == "3" and selected_id == "purchase":
             from screens.purchase_screen import PurchaseScreen
             self.app.push_screen(PurchaseScreen(title=child.label))
+        elif self._node.id == "4" and selected_id == "1":
+            from screens.posting_screen import PostingScreen
+            self.app.push_screen(PostingScreen(title=child.label))
         elif self._node.id == "4" and selected_id == "2":
             from screens.daily_report_screen import DailyReportScreen
             self.app.push_screen(DailyReportScreen(title=child.label))

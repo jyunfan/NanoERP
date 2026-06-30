@@ -200,7 +200,8 @@ NanoERP 是以鍵盤快速輸入為主的傳統 ERP/TUI 系統，第一階段目
 | 資料 | 說明 |
 | --- | --- |
 | `customer_freq_product` | 決定客戶訂單畫面出現哪些產品。 |
-| `order_table` | 記錄客戶、產品、數量、日期、退貨/過帳狀態。 |
+| `order_draft` | 記錄過帳前暫存的客戶訂單。 |
+| `order_table` | 記錄過帳後正式客戶訂單，含工作日期與價格快照。 |
 | `customer_product` | 記錄客戶專用售價。 |
 
 數量規則：
@@ -279,9 +280,9 @@ NanoERP 是以鍵盤快速輸入為主的傳統 ERP/TUI 系統，第一階段目
 
 | 資料 | 說明 |
 | --- | --- |
-| `order_table` | 過帳來源資料，含客戶訂單與可能的退貨資料。 |
-| `posting` | 過帳後資料表。 |
-| `posted` | 若保留在 `order_table`，需用此欄標記已過帳。 |
+| `order_draft` | 過帳來源資料，含客戶訂單與可能的退貨資料。 |
+| `posting_batch` | 過帳批次資料，記錄工作日期與過帳時間。 |
+| `order_table` | 過帳後正式訂單明細。 |
 
 ### 4.2 日報表
 
@@ -319,8 +320,6 @@ NanoERP 是以鍵盤快速輸入為主的傳統 ERP/TUI 系統，第一階段目
 
 需要確認：
 
-- 日報表顯示過帳前資料或過帳後資料。
-- 過帳後是否鎖定訂單或另寫入 `posting` table。
 - 客戶退貨的 `退價` 欄位格式與資料表位置。
 
 ## 5. 結帳與其報表
@@ -349,8 +348,9 @@ NanoERP 是以鍵盤快速輸入為主的傳統 ERP/TUI 系統，第一階段目
 | `customer` | 客戶主檔、市場、結帳代碼。 |
 | `supplier` | 廠商主檔。 |
 | `product` | 產品主檔、價格、庫存基礎資料。 |
-| `order_table` | 客戶訂單。 |
-| `posting` | 過帳資料。 |
+| `order_draft` | 過帳前客戶訂單暫存。 |
+| `posting_batch` | 過帳批次資料。 |
+| `order_table` | 過帳後正式客戶訂單。 |
 | `customer_product` | 客戶專用售價。 |
 | `customer_freq_product` | 客戶常用/訂單產品清單。 |
 | `supplier_freq_product` | 廠商常用/進退貨產品清單。 |
