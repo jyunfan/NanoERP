@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import sqlite3
-from datetime import date
 
 from textual.app import ComposeResult
 from textual.binding import Binding
@@ -10,6 +9,7 @@ from textual.containers import Horizontal, Vertical
 from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Label, Select
+from screens.ui4_common import format_short_date, format_work_date
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -51,6 +51,11 @@ class ShippingReportScreen(Screen):
             with Vertical(id="shipping-document"):
                 yield Label("", id="shipping-document-title")
                 yield DataTable(id="shipping-table", cursor_type="none")
+        yield Label(format_work_date(self.app.work_date), id="shipping-work-date")
+        yield Label(
+            "0.回上系統  1.其餘市場  2.建國市場  3.南部市場",
+            id="shipping-footer-options",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -67,6 +72,7 @@ class ShippingReportScreen(Screen):
         self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
 
     def _on_work_date_changed(self, new_value: str) -> None:
+        self.query_one("#shipping-work-date", Label).update(format_work_date(new_value))
         self._load_customers()
 
     def on_key(self, event: Key) -> None:
@@ -173,11 +179,7 @@ class ShippingReportScreen(Screen):
         )
 
     def _format_work_date(self) -> str:
-        try:
-            work_date = date.fromisoformat(self.app.work_date)
-        except ValueError:
-            return self.app.work_date
-        return f"{work_date.month}-{work_date.day}"
+        return format_short_date(self.app.work_date)
 
     @staticmethod
     def _format_quantity(quantity: object) -> str:

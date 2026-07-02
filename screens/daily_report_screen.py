@@ -4,10 +4,12 @@ import sqlite3
 import os
 
 from textual.app import ComposeResult
+from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Header, Footer, DataTable, Label, Select
 from textual.containers import Horizontal, Vertical
 from textual.binding import Binding
+from screens.ui4_common import format_work_date
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -44,6 +46,11 @@ class DailyReportScreen(Screen):
                 )
                 yield DataTable(id="report-customer-list", cursor_type="row")
             yield DataTable(id="report-table", cursor_type="none")
+        yield Label(format_work_date(self.app.work_date), id="report-work-date")
+        yield Label(
+            "0.回上系統  1.列印者設定  2.執行",
+            id="report-footer-options",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -63,7 +70,21 @@ class DailyReportScreen(Screen):
         self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
 
     def _on_work_date_changed(self, new_value: str) -> None:
+        self.query_one("#report-work-date", Label).update(format_work_date(new_value))
         self._load_customers()
+
+    def on_key(self, event: Key) -> None:
+        if event.character == "1":
+            event.prevent_default()
+            from screens.print_settings_screen import PrintSettingsScreen
+
+            self.app.push_screen(
+                PrintSettingsScreen(title="4.2.1.1 過帳與日報表\n列印設定")
+            )
+            return
+        if event.character == "2":
+            event.prevent_default()
+            self._load_report()
 
     def on_select_changed(self, event: Select.Changed) -> None:
         if event.select.id != "market-select":

@@ -6,8 +6,11 @@ import sqlite3
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.coordinate import Coordinate
+from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Input, Label
+
+from screens.ui4_common import format_work_date
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -17,6 +20,12 @@ COLUMNS = [
     ("phone1", "電話1"),
     ("phone2", "電話2"),
 ]
+
+MARKET_NAMES = {
+    1: "1. 其餘市場",
+    2: "2. 建國市場",
+    3: "3. 南部市場",
+}
 
 
 class SupplierScreen(Screen):
@@ -36,6 +45,11 @@ class SupplierScreen(Screen):
         yield Header()
         yield Label(self._title, id="supplier-title")
         yield DataTable(id="supplier-table", cursor_type="cell")
+        yield Label(format_work_date(self.app.work_date), id="supplier-work-date")
+        yield Label(
+            "0.回主系統  1.其餘市場  2.建國市場  3.南部市場  4.廠商",
+            id="supplier-footer-options",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -43,6 +57,10 @@ class SupplierScreen(Screen):
         for col_key, col_label in COLUMNS:
             table.add_column(col_label, key=col_key)
         self._load_data()
+        self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
+
+    def _on_work_date_changed(self, new_value: str) -> None:
+        self.query_one("#supplier-work-date", Label).update(format_work_date(new_value))
 
     def _load_data(self) -> None:
         table = self.query_one("#supplier-table", DataTable)
@@ -128,6 +146,32 @@ class SupplierScreen(Screen):
         table = self.query_one("#supplier-table", DataTable)
         table.add_row(new_id, "", "", "", key=str(new_id))
         table.move_cursor(row=table.row_count - 1, column=0)
+
+    def on_key(self, event: Key) -> None:
+        if self._editing is not None:
+            return
+        if event.character == "0":
+            event.prevent_default()
+            self._go_to_root_menu()
+            return
+        if event.character in ("1", "2", "3"):
+            event.prevent_default()
+            self._switch_customer_market(int(event.character))
+            return
+        if event.character == "4":
+            event.prevent_default()
+            return
+
+    def _switch_customer_market(self, market: int) -> None:
+        from screens.customer_screen import CustomerScreen
+
+        self.app.switch_screen(
+            CustomerScreen(market=market, title=MARKET_NAMES[market])
+        )
+
+    def _go_to_root_menu(self) -> None:
+        while len(self.app.screen_stack) > 2:
+            self.app.pop_screen()
 
     def action_delete_row(self) -> None:
         if self._editing is not None:

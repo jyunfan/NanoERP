@@ -7,6 +7,7 @@ from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.screen import Screen
 from textual.widgets import DataTable, Footer, Header, Label
+from screens.ui4_common import format_work_date
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -26,9 +27,16 @@ class PostingScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Label(self._title, id="posting-title")
+        yield Label("過帳對象", id="posting-target")
+        yield Label("完成率:", id="posting-progress")
         yield Label("", id="posting-summary")
         yield DataTable(id="posting-table", cursor_type="none")
-        yield Label("按 Space 執行過帳，Esc 取消。", id="posting-help")
+        yield Label("==> 按 空鍵棒 : 即行過帳 ?    Esc : 取消", id="posting-help")
+        yield Label(format_work_date(self.app.work_date), id="posting-work-date")
+        yield Label(
+            "0.回上系統  1.客戶退貨  2.執行過帳",
+            id="posting-footer-options",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -40,6 +48,7 @@ class PostingScreen(Screen):
         self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
 
     def _on_work_date_changed(self, new_value: str) -> None:
+        self.query_one("#posting-work-date", Label).update(format_work_date(new_value))
         self._load_summary()
 
     def _load_summary(self) -> None:
@@ -67,6 +76,10 @@ class PostingScreen(Screen):
             f"過帳日期: {self.app.work_date}    "
             f"暫存筆數: {row_count}    客戶數: {customer_count}    數量合計: {total_qty}"
         )
+        self.query_one("#posting-target", Label).update(
+            f"過帳對象: {customer_count} 位客戶 / {row_count} 筆暫存資料"
+        )
+        self.query_one("#posting-progress", Label).update("完成率: 尚未開始")
         self.query_one("#posting-summary", Label).update(summary)
 
         for name, count, qty in product_rows:
@@ -82,6 +95,9 @@ class PostingScreen(Screen):
             self.query_one("#posting-summary", Label).update(f"過帳失敗: {exc}")
         else:
             self._load_summary()
+            self.query_one("#posting-progress", Label).update(
+                "完成率: 100%" if posted_count else "完成率: 無資料"
+            )
             self.query_one("#posting-summary", Label).update(
                 f"過帳完成: {posted_count} 筆已儲存到 {self.app.work_date}"
             )

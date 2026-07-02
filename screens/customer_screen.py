@@ -4,6 +4,7 @@ import sqlite3
 import os
 
 from textual.app import ComposeResult
+from textual.containers import Horizontal, Vertical
 from textual.events import Key
 from textual.screen import Screen
 from textual.widgets import Header, Footer, DataTable, Label, Input, Select
@@ -11,6 +12,7 @@ from textual.binding import Binding
 from textual.coordinate import Coordinate
 
 from constants import CHECKOUT_CODES, CHECKOUT_CODE_OPTIONS
+from screens.ui4_common import format_work_date
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -47,7 +49,36 @@ class CustomerScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header()
         yield Label(self._title, id="customer-title")
-        yield DataTable(id="customer-table", cursor_type="cell")
+        with Horizontal(id="customer-container"):
+            yield DataTable(id="customer-table", cursor_type="cell")
+            with Vertical(id="customer-help-panel"):
+                yield Label(
+                    "結帳代碼\n"
+                    "0: 不印\n"
+                    "1: 出貨\n"
+                    "2: 日\n"
+                    "3: 週\n"
+                    "4: 旬\n"
+                    "5: 半月\n"
+                    "6: 月",
+                    id="customer-checkout-help",
+                )
+                yield Label(
+                    "功能鍵\n"
+                    "Alt_F1: 增加\n"
+                    "Alt_F3: 移位\n"
+                    "Alt_F5: 明細列印\n"
+                    "Alt_F6: 電話列印\n"
+                    "Alt_F9: 刪除\n"
+                    "0: 更改\n"
+                    "Esc: 回跳",
+                    id="customer-key-help",
+                )
+        yield Label(format_work_date(self.app.work_date), id="customer-work-date")
+        yield Label(
+            "0.回主系統  1.其餘市場  2.建國市場  3.南部市場  4.廠商",
+            id="customer-footer-options",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -55,6 +86,10 @@ class CustomerScreen(Screen):
         for col_key, col_label in COLUMNS:
             table.add_column(col_label, key=col_key)
         self._load_data()
+        self.watch(self.app, "work_date", self._on_work_date_changed, init=False)
+
+    def _on_work_date_changed(self, new_value: str) -> None:
+        self.query_one("#customer-work-date", Label).update(format_work_date(new_value))
 
     def _load_data(self) -> None:
         table = self.query_one("#customer-table", DataTable)
@@ -183,6 +218,10 @@ class CustomerScreen(Screen):
     def on_key(self, event: Key) -> None:
         if self._editing is not None:
             return
+        if event.character == "0":
+            event.prevent_default()
+            self._go_to_root_menu()
+            return
         if event.character in ("1", "2", "3"):
             event.prevent_default()
             self._switch_market(int(event.character))
@@ -191,7 +230,7 @@ class CustomerScreen(Screen):
             event.prevent_default()
             from screens.supplier_screen import SupplierScreen
 
-            self.app.push_screen(SupplierScreen(title="4. 廠商"))
+            self.app.switch_screen(SupplierScreen(title="4. 廠商"))
             return
 
     def _switch_market(self, market: int) -> None:
@@ -199,6 +238,10 @@ class CustomerScreen(Screen):
         self._title = MARKET_NAMES[market]
         self.query_one("#customer-title", Label).update(self._title)
         self._load_data()
+
+    def _go_to_root_menu(self) -> None:
+        while len(self.app.screen_stack) > 2:
+            self.app.pop_screen()
 
     def action_delete_row(self) -> None:
         if self._editing is not None:

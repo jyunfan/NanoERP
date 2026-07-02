@@ -193,6 +193,16 @@ def create_database():
     """)
 
     cur.execute("""
+        CREATE TABLE IF NOT EXISTS customer_print_setting (
+            report_type TEXT NOT NULL,
+            customer_id INTEGER NOT NULL,
+            enabled BOOLEAN NOT NULL DEFAULT 0,
+            PRIMARY KEY (report_type, customer_id),
+            FOREIGN KEY (customer_id) REFERENCES customer(id)
+        )
+    """)
+
+    cur.execute("""
         CREATE TABLE IF NOT EXISTS supplier_freq_product (
             supplier_id INTEGER,
             product_id INTEGER,

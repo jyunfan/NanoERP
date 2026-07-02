@@ -1,6 +1,6 @@
 # 舊 DOS UI 規格索引
 
-本目錄由 `doc/UI-ref/` 的舊系統截圖整理而來。第一階段先整理 `UI-1-*`、`UI-2-*`、`UI-3*`。
+本目錄由 `doc/UI-ref/` 的舊系統截圖整理而來。
 
 | Markdown | 對應截圖 |
 | --- | --- |
@@ -8,6 +8,7 @@
 | `UI-2-產品資料設定.md` | `doc/UI-ref/UI-2-產品資料設定.jpg` |
 | `UI-3-進銷訂貨處理.md` | `doc/UI-ref/UI-3-*.jpg` |
 | `UI-4-過帳與日報表.md` | `doc/UI-ref/UI-4-*.jpg` |
+| `UI-5-結帳與期報表.md` | `doc/UI-ref/UI-5-*.jpg` |
 
 ## 使用方式
 
