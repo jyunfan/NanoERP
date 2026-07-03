@@ -31,19 +31,10 @@ MENU_TREE = MenuNode(
         MenuNode(
             id="3",
             label="3. 進銷訂貨處理",
+            footer="0.回主系統  1.客戶訂單  2.廠商訂單",
             children=[
                 MenuNode(id="back", label="0. 回上一頁", is_back=True),
-                MenuNode(
-                    id="customer_orders",
-                    label="1. 客戶訂單",
-                    children=[
-                        MenuNode(id="back", label="0. 回上一頁", is_back=True),
-                        MenuNode(id="1", label="1. 其餘市場"),
-                        MenuNode(id="2", label="2. 建國市場"),
-                        MenuNode(id="3", label="3. 南部市場"),
-                        MenuNode(id="total_check", label="4. 總數核對"),
-                    ],
-                ),
+                MenuNode(id="customer_orders", label="1. 客戶訂單"),
                 MenuNode(id="purchase", label="2. 廠商訂單"),
             ],
         ),

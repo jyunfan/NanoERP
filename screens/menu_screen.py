@@ -77,6 +77,12 @@ class MenuScreen(Screen):
             from screens.customer_screen import CustomerScreen
 
             self.app.push_screen(CustomerScreen(market=1, title="1. 其餘市場"))
+        elif self._node.id == "3" and selected_id == "customer_orders":
+            from screens.order_screen import MARKET_NAMES, OrderScreen
+
+            self.app.push_screen(
+                OrderScreen(market=1, title=MARKET_NAMES[1])
+            )
         elif child.children:
             self.app.push_screen(MenuScreen(child))
         elif self._node.id == "1" and selected_id in ("1", "2", "3"):
@@ -90,14 +96,6 @@ class MenuScreen(Screen):
         elif self._node.id == "root" and selected_id == "2":
             from screens.product_screen import ProductScreen
             self.app.push_screen(ProductScreen(title=child.label))
-        elif self._node.id == "customer_orders" and selected_id in ("1", "2", "3"):
-            from screens.order_screen import OrderScreen
-            self.app.push_screen(
-                OrderScreen(market=int(selected_id), title=child.label)
-            )
-        elif self._node.id == "customer_orders" and selected_id == "total_check":
-            from screens.total_check_screen import TotalCheckScreen
-            self.app.push_screen(TotalCheckScreen(title=child.label))
         elif self._node.id == "3" and selected_id == "purchase":
             from screens.purchase_screen import PurchaseScreen
             self.app.push_screen(PurchaseScreen(title=child.label))

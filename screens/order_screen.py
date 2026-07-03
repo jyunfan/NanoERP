@@ -15,6 +15,7 @@ from textual.binding import Binding
 from textual.coordinate import Coordinate
 
 from constants import RECENT_ORDER_DAYS, RECENT_ORDER_MARKER
+from screens.ui4_common import format_work_date
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -85,6 +86,11 @@ class OrderScreen(Screen):
                 )
                 yield DataTable(id="order-table", cursor_type="cell")
             yield DataTable(id="order-total-table", cursor_type="none")
+        yield Label(format_work_date(self.app.work_date), id="order-work-date")
+        yield Label(
+            "0.回上系統  1.其餘市場  2.建國市場  3.南部市場  4.總數核對",
+            id="order-footer-options",
+        )
         yield Footer()
 
     def on_mount(self) -> None:
@@ -105,6 +111,7 @@ class OrderScreen(Screen):
         table.cursor_type = "cell"
 
     def _on_work_date_changed(self, new_value: str) -> None:
+        self.query_one("#order-work-date", Label).update(format_work_date(new_value))
         self._load_customers()
 
     def _load_products(self) -> None:
@@ -661,6 +668,10 @@ class OrderScreen(Screen):
             return
 
         if self._editing is not None or self._add_dialog_open():
+            return
+        if event.character == "0":
+            event.prevent_default()
+            self.app.pop_screen()
             return
         if event.character in ("1", "2", "3"):
             event.prevent_default()

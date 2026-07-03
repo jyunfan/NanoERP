@@ -187,6 +187,12 @@ CustomerScreen SelectOverlay {
     border: solid $primary;
 }
 
+#order-work-date,
+#order-footer-options {
+    width: 100%;
+    text-align: center;
+}
+
 OrderScreen OptionList {
     height: 1fr;
 }

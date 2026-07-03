@@ -32,3 +32,18 @@ honor `NO_COLOR=1` and will render the TUI in grayscale.
 
 It also detects whether the installed `ttyd` supports `--writable`. Older
 `ttyd` versions are writable by default and do not accept `-W`.
+
+# Test case data
+Rebuild a reproducible test database with the current 10 customers, 12 products,
+2 suppliers, 3 posted customer-order days, and 1 draft customer-order day:
+
+```sh
+python3 scripts/test_cases.py run
+```
+
+By default this writes `/tmp/nanoerp_test_cases.db` and prints `PASS` when all
+checks succeed. To seed the application database instead:
+
+```sh
+python3 scripts/test_cases.py run --db db.sql
+```
