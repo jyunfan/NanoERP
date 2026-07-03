@@ -139,6 +139,13 @@ NanoERP 是以鍵盤快速輸入為主的傳統 ERP/TUI 系統，第一階段目
 | `order_table` | 記錄過帳後正式客戶訂單，含工作日期與價格快照。 |
 | `customer_product` | 記錄客戶專用售價。 |
 
+客戶訂單產品標記：
+
+- 訂單明細的產品名稱旁可顯示笑臉標記，表示該客戶最近曾訂購此產品。
+- 最近訂購判斷以已過帳正式資料 `order_table` 為準，不使用尚未過帳的 `order_draft`。
+- 判斷區間以 `WORK_DATE` 為結束日，往前共 `RECENT_ORDER_DAYS` 個日曆日；目前預設 `RECENT_ORDER_DAYS = 30`。
+- 只計入 `is_return = 0` 且 `quantity > 0` 的訂單。
+
 數量規則：
 
 - 數量輸入必須是數字。

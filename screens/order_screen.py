@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, timedelta
 import sqlite3
 import os
 
@@ -12,6 +13,8 @@ from textual.widgets.option_list import Option
 from textual.containers import Horizontal, Vertical
 from textual.binding import Binding
 from textual.coordinate import Coordinate
+
+from constants import RECENT_ORDER_DAYS, RECENT_ORDER_MARKER
 
 DB_PATH = os.path.join(os.path.dirname(os.path.dirname(__file__)), "db.sql")
 
@@ -66,6 +69,7 @@ class OrderScreen(Screen):
         self._all_products: list[tuple[str, int]] = []  # (name, id)
         # Product IDs shown in current add dialog
         self._add_option_ids: list[int] = []
+        self._recent_order_product_ids: set[int] = set()
         self._mode = "quantity"
         self._editing_mode: str | None = None
 
@@ -126,6 +130,7 @@ class OrderScreen(Screen):
         order_table.clear()
         self._cell_product_map.clear()
         self._price_product_map.clear()
+        self._recent_order_product_ids.clear()
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
         cur.execute(
@@ -169,6 +174,7 @@ class OrderScreen(Screen):
         self._selected_customer_id = None
         self._cell_product_map.clear()
         self._price_product_map.clear()
+        self._recent_order_product_ids.clear()
         self.query_one("#order-prompt", Label).display = True
         table = self.query_one("#order-table", DataTable)
         table.display = False
@@ -224,6 +230,7 @@ class OrderScreen(Screen):
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        self._recent_order_product_ids = self._fetch_recent_order_product_ids(cur)
         # Get customer's frequent products + any extra orders not in freq list
         cur.execute(
             "SELECT product_id, quantity FROM ("
@@ -258,7 +265,7 @@ class OrderScreen(Screen):
                 if i + g < len(items):
                     pid, qty = items[i + g]
                     self._cell_product_map[(row_idx, g)] = pid
-                    row_values.append(self._product_names.get(pid, str(pid)))
+                    row_values.append(self._format_product_name(pid))
                     row_values.append(str(qty) if qty else "")
                 else:
                     row_values.append("")
@@ -278,6 +285,7 @@ class OrderScreen(Screen):
 
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+        self._recent_order_product_ids = self._fetch_recent_order_product_ids(cur)
         cur.execute(
             "SELECT i.product_id, p.short_name, p.purchase_price, "
             "       COALESCE(cp.sale_price, p.sale_price) AS sale_price "
@@ -301,12 +309,42 @@ class OrderScreen(Screen):
         ):
             self._price_product_map[row_idx] = product_id
             table.add_row(
-                name or str(product_id),
+                self._format_product_name(product_id, name),
                 self._format_number(purchase_price),
                 self._format_number(sale_price),
                 key=f"row_{row_idx}",
             )
         conn.close()
+
+    def _fetch_recent_order_product_ids(self, cur: sqlite3.Cursor) -> set[int]:
+        if self._selected_customer_id is None:
+            return set()
+
+        try:
+            work_date = date.fromisoformat(self.app.work_date)
+        except ValueError:
+            return set()
+
+        days = max(RECENT_ORDER_DAYS, 1)
+        start_date = (work_date - timedelta(days=days - 1)).isoformat()
+        end_date = work_date.isoformat()
+        cur.execute(
+            "SELECT DISTINCT product_id "
+            "FROM order_table "
+            "WHERE customer_id = ? "
+            "  AND is_return = 0 "
+            "  AND quantity > 0 "
+            "  AND order_date >= ? "
+            "  AND order_date <= ?",
+            (self._selected_customer_id, start_date, end_date),
+        )
+        return {int(row[0]) for row in cur.fetchall() if row[0] is not None}
+
+    def _format_product_name(self, product_id: int, name: str | None = None) -> str:
+        display_name = name or self._product_names.get(product_id) or str(product_id)
+        if product_id in self._recent_order_product_ids:
+            return f"{display_name}{RECENT_ORDER_MARKER}"
+        return display_name
 
     def _refresh_customer_order_count(self) -> None:
         if self._selected_customer_id is None:

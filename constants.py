@@ -9,3 +9,6 @@ CHECKOUT_CODES = {
 }
 
 CHECKOUT_CODE_OPTIONS = [(label, code) for code, label in CHECKOUT_CODES.items()]
+
+RECENT_ORDER_DAYS = 30
+RECENT_ORDER_MARKER = "☺"
