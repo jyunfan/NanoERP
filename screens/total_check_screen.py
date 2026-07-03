@@ -15,6 +15,7 @@ class TotalCheckScreen(Screen):
     BINDINGS = [
         Binding("escape", "go_back", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
+        Binding("f1", "show_one_by_one", "逐一顯示", show=False),
     ]
 
     def __init__(self, title: str) -> None:
@@ -72,3 +73,6 @@ class TotalCheckScreen(Screen):
         from screens.quit_dialog import QuitScreen
 
         self.app.push_screen(QuitScreen())
+
+    def action_show_one_by_one(self) -> None:
+        self.app.notify("逐一顯示尚未實作", severity="warning")

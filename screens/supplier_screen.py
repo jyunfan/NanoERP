@@ -33,7 +33,7 @@ class SupplierScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_row", "新增", show=True),
-        Binding("alt+f9", "delete_row", "刪除", show=True),
+        Binding("f9", "delete_row", "刪除", show=True),
     ]
 
     def __init__(self, title: str) -> None:

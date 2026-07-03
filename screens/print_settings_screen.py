@@ -21,12 +21,12 @@ class PrintSettingsScreen(Screen):
         Binding("escape", "go_back", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("0", "toggle_current", "更改開關", show=False),
-        Binding("alt+f1", "select_checkout_1", "出貨", show=False),
-        Binding("alt+f2", "select_checkout_2", "日", show=False),
-        Binding("alt+f3", "select_checkout_3", "週", show=False),
-        Binding("alt+f4", "select_checkout_4", "旬", show=False),
-        Binding("alt+f5", "select_checkout_5", "半月", show=False),
-        Binding("alt+f6", "select_checkout_6", "月", show=False),
+        Binding("f1", "select_checkout_1", "出貨", show=False),
+        Binding("f2", "select_checkout_2", "日", show=False),
+        Binding("f3", "select_checkout_3", "週", show=False),
+        Binding("f4", "select_checkout_4", "旬", show=False),
+        Binding("f5", "select_checkout_5", "半月", show=False),
+        Binding("f6", "select_checkout_6", "月", show=False),
         Binding("ctrl+home", "disable_market", "本市場全部不印", show=False),
         Binding("ctrl+end", "restore_default", "本市場恢復內定", show=False),
     ]
@@ -49,7 +49,7 @@ class PrintSettingsScreen(Screen):
                     "0: 更改開關\n"
                     "●: 印\n"
                     "○: 不印\n\n"
-                    "Alt_組合鍵（以結帳期選定）\n"
+                    "功能鍵（以結帳期選定）\n"
                     "F1: 出貨\n"
                     "F2: 日\n"
                     "F3: 週\n"

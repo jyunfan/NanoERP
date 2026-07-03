@@ -29,6 +29,9 @@ class ProductScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_row", "新增", show=True),
+        Binding("f3", "move_row", "移位", show=False),
+        Binding("f5", "print_detail", "詳細表", show=False),
+        Binding("f6", "print_quote", "報價單", show=False),
         Binding("f9", "delete_row", "刪除", show=True),
     ]
 
@@ -169,6 +172,18 @@ class ProductScreen(Screen):
         table = self.query_one("#product-table", DataTable)
         table.add_row(new_id, "", "", "", "", "", "", "", "", key=str(new_id))
         table.move_cursor(row=table.row_count - 1, column=0)
+
+    def action_move_row(self) -> None:
+        self._notify_placeholder("移位")
+
+    def action_print_detail(self) -> None:
+        self._notify_placeholder("詳細表列印")
+
+    def action_print_quote(self) -> None:
+        self._notify_placeholder("報價單列印")
+
+    def _notify_placeholder(self, feature: str) -> None:
+        self.app.notify(f"{feature}尚未實作", severity="warning")
 
     def action_delete_row(self) -> None:
         if self._editing is not None:

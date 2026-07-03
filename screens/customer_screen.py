@@ -37,7 +37,10 @@ class CustomerScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_row", "新增", show=True),
-        Binding("alt+f9", "delete_row", "刪除", show=True),
+        Binding("f3", "move_row", "移位", show=False),
+        Binding("f5", "print_detail", "明細列印", show=False),
+        Binding("f6", "print_phone", "電話列印", show=False),
+        Binding("f9", "delete_row", "刪除", show=True),
     ]
 
     def __init__(self, market: int, title: str) -> None:
@@ -65,11 +68,11 @@ class CustomerScreen(Screen):
                 )
                 yield Label(
                     "功能鍵\n"
-                    "Alt_F1: 增加\n"
-                    "Alt_F3: 移位\n"
-                    "Alt_F5: 明細列印\n"
-                    "Alt_F6: 電話列印\n"
-                    "Alt_F9: 刪除\n"
+                    "F1: 增加\n"
+                    "F3: 移位\n"
+                    "F5: 明細列印\n"
+                    "F6: 電話列印\n"
+                    "F9: 刪除\n"
                     "0: 更改\n"
                     "Esc: 回跳",
                     id="customer-key-help",
@@ -214,6 +217,18 @@ class CustomerScreen(Screen):
         table = self.query_one("#customer-table", DataTable)
         table.add_row(new_id, "", "", "", "", "", key=str(new_id))
         table.move_cursor(row=table.row_count - 1, column=0)
+
+    def action_move_row(self) -> None:
+        self._notify_placeholder("移位")
+
+    def action_print_detail(self) -> None:
+        self._notify_placeholder("明細列印")
+
+    def action_print_phone(self) -> None:
+        self._notify_placeholder("電話列印")
+
+    def _notify_placeholder(self, feature: str) -> None:
+        self.app.notify(f"{feature}尚未實作", severity="warning")
 
     def on_key(self, event: Key) -> None:
         if self._editing is not None:

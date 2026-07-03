@@ -30,7 +30,11 @@ class PurchaseScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_product", "新增產品", show=True),
-        Binding("delete", "delete_product", "刪除產品", show=True),
+        Binding("f2", "check", "檢查", show=False),
+        Binding("f3", "sort", "排序", show=False),
+        Binding("f5", "print", "列印", show=False),
+        Binding("f9", "delete_product", "刪除產品", show=True),
+        Binding("delete", "delete_product", "刪除產品", show=False),
     ]
 
     def __init__(self, title: str) -> None:
@@ -350,6 +354,18 @@ class PurchaseScreen(Screen):
         self.mount(ol)
         ol.highlighted = 0
         ol.focus()
+
+    def action_check(self) -> None:
+        self._notify_placeholder("檢查")
+
+    def action_sort(self) -> None:
+        self._notify_placeholder("排序")
+
+    def action_print(self) -> None:
+        self._notify_placeholder("列印")
+
+    def _notify_placeholder(self, feature: str) -> None:
+        self.app.notify(f"{feature}尚未實作", severity="warning")
 
     def on_key(self, event: Key) -> None:
         if event.key == "escape":

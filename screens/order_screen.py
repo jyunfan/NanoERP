@@ -42,8 +42,10 @@ class OrderScreen(Screen):
         Binding("escape", "go_back_or_cancel", "返回", show=True),
         Binding("q", "request_quit", "離開", show=True),
         Binding("f1", "add_product", "新增產品", show=True),
+        Binding("f2", "calculation_check", "計算檢查", show=False),
         Binding("f3", "toggle_price_mode", "售價模式", show=True),
-        Binding("delete", "delete_product", "刪除產品", show=True),
+        Binding("f9", "delete_product", "刪除產品", show=True),
+        Binding("delete", "delete_product", "刪除產品", show=False),
         Binding("tab", "toggle_focus", "左右切換", show=True),
     ]
 
@@ -605,6 +607,9 @@ class OrderScreen(Screen):
         self.mount(ol)
         ol.highlighted = 0
         ol.focus()
+
+    def action_calculation_check(self) -> None:
+        self.app.notify("計算檢查尚未實作", severity="warning")
 
     def on_key(self, event: Key) -> None:
         # Handle Escape on add-product dialog
