@@ -1,5 +1,19 @@
 # 開發筆記
 
+## 2026-07-03: ttyd 遠端測試與灰階顯示
+
+### 變更檔案
+- `scripts/run_ttyd.sh`
+- `README.md`
+
+### 說明
+- 新增 `scripts/run_ttyd.sh`，用 `ttyd` 將 Textual TUI 包成瀏覽器可連線的本機測試入口。
+- 預設綁定 `127.0.0.1:7681`，並使用 basic auth `nanoerp:nanoerp`。
+- 可用 `TTYD_HOST`、`TTYD_PORT`、`TTYD_CREDENTIAL` 覆蓋預設設定。
+- 若環境中有 `NO_COLOR=1`，Textual/Rich 會尊重該設定並把 ANSI 顏色轉成灰階。
+- 啟動腳本在執行 `uv run main.py` 前使用 `/usr/bin/env -u NO_COLOR` 移除該環境變數，並設定 `COLORTERM=truecolor`、`TERM=xterm-256color`、`FORCE_COLOR=1`。
+- 驗證時，未移除 `NO_COLOR` 的 PTY 輸出只出現 `R=G=B` 的灰階 truecolor；移除後可看到實際彩色 RGB，例如粉紅、青色與紫色。
+
 ## 2026-06-30: UI-4 日帳單金額
 
 ### 變更檔案
