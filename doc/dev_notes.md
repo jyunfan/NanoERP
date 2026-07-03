@@ -9,7 +9,9 @@
 ### 說明
 - 新增 `scripts/run_ttyd.sh`，用 `ttyd` 將 Textual TUI 包成瀏覽器可連線的本機測試入口。
 - 預設綁定 `127.0.0.1:7681`，並使用 basic auth `nanoerp:nanoerp`。
+- 若預設 port `7681` 已被佔用，腳本會自動嘗試下一個可用 port；明確設定 `TTYD_PORT` 時則會尊重該設定並在被佔用時報錯。
 - 可用 `TTYD_HOST`、`TTYD_PORT`、`TTYD_CREDENTIAL` 覆蓋預設設定。
+- `ttyd 1.6.x` 預設允許寫入且不支援 `-W`；`ttyd 1.7.x` 預設 readonly，需要 `-W`。腳本會用 `ttyd --help` 偵測是否可加 `-W`。
 - 若環境中有 `NO_COLOR=1`，Textual/Rich 會尊重該設定並把 ANSI 顏色轉成灰階。
 - 啟動腳本在執行 `uv run main.py` 前使用 `/usr/bin/env -u NO_COLOR` 移除該環境變數，並設定 `COLORTERM=truecolor`、`TERM=xterm-256color`、`FORCE_COLOR=1`。
 - 驗證時，未移除 `NO_COLOR` 的 PTY 輸出只出現 `R=G=B` 的灰階 truecolor；移除後可看到實際彩色 RGB，例如粉紅、青色與紫色。

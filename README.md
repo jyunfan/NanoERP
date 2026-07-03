@@ -19,7 +19,7 @@ Defaults:
 
 - username/password: `nanoerp` / `nanoerp`
 - bind address: `127.0.0.1`
-- port: `7681`
+- port: `7681`, or the next available port if `7681` is already in use
 
 These can be overridden:
 
@@ -29,3 +29,6 @@ TTYD_CREDENTIAL='user:password' TTYD_PORT=7682 ./scripts/run_ttyd.sh
 
 The script removes `NO_COLOR` for the child process because Textual/Rich
 honor `NO_COLOR=1` and will render the TUI in grayscale.
+
+It also detects whether the installed `ttyd` supports `--writable`. Older
+`ttyd` versions are writable by default and do not accept `-W`.
